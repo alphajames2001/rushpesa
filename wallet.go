@@ -18,8 +18,8 @@ import (
 // Deposits: initiated here through the PaymentProvider interface (see
 // payment.go), so this file doesn't know or care whether Daraja or
 // Palpluss (PAYMENT_PROVIDER env var) is actually handling collection.
-// Daraja's C2B is fully implemented (daraja.go); Palpluss's is
-// intentionally left as a stub (palpluss.go) pending its own C2B wiring.
+// Both are fully implemented end to end (daraja.go / palpluss.go),
+// including their respective webhook callbacks below and in palpluss.go.
 //
 // Withdrawals: intentionally stop at creating a 'pending' record. There is
 // NO B2C payout integration for either provider here — that's wired up

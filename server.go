@@ -278,7 +278,7 @@ func (a *App) newRouter() http.Handler {
 
 		r.Route("/wallet", func(r chi.Router) {
 			r.Post("/daraja/callback", a.DarajaCallback)     // unauthenticated Safaricom webhook
-			r.Post("/palpluss/callback", a.PalplussCallback) // unauthenticated Palpluss webhook — stub, see palpluss.go
+			r.Post("/palpluss/callback", a.PalplussCallback) // unauthenticated PalPluss webhook
 
 			r.Group(func(r chi.Router) {
 				r.Use(a.AuthMiddleware)

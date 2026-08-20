@@ -30,7 +30,7 @@ type PaymentProvider interface {
 // DepositInitResult is the provider-agnostic shape wallet.go needs back
 // from InitiateDeposit, regardless of which provider produced it.
 type DepositInitResult struct {
-	ProviderRef string // Daraja: CheckoutRequestID. Palpluss: whatever tracking id their C2B response returns.
+	ProviderRef string // Daraja: CheckoutRequestID. Palpluss: their STK response's transactionId (also what shows up as transaction.id on the webhook).
 	Message     string // Customer-facing status message, if the provider gives one.
 }
 

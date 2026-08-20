@@ -272,7 +272,8 @@ func (d *DB) CreateDeposit(ctx context.Context, userID uuid.UUID, amount float64
 
 // SetDepositCheckoutID / GetDepositByCheckoutID use provider_checkout_id,
 // renamed from daraja_checkout_id now that either provider's tracking ref
-// can land here (see schema-updates.sql).
+// can land here (see schema-updates.sql) — Daraja's CheckoutRequestID or
+// Palpluss's transactionId (see daraja.go / palpluss.go InitiateDeposit).
 func (d *DB) SetDepositCheckoutID(ctx context.Context, txID uuid.UUID, providerRef string) error {
 	const q = `update transactions set provider_checkout_id = $2 where id = $1`
 	_, err := d.pool.Exec(ctx, q, txID, providerRef)
