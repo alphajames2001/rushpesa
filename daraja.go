@@ -174,6 +174,25 @@ func (d *DarajaClient) InitiateSTKPush(ctx context.Context, phone string, amount
 	return &out, nil
 }
 
+// ---- PaymentProvider interface adapter (see payment.go) ----
+//
+// Everything above this point is unchanged. These two methods just let
+// *DarajaClient satisfy PaymentProvider so wallet.go can call it through
+// the same interface Palpluss uses, without caring which is active.
+
+func (d *DarajaClient) Name() string { return "daraja" }
+
+func (d *DarajaClient) InitiateDeposit(ctx context.Context, phone string, amount float64, accountReference string) (*DepositInitResult, error) {
+	resp, err := d.InitiateSTKPush(ctx, phone, amount, accountReference)
+	if err != nil {
+		return nil, err
+	}
+	return &DepositInitResult{
+		ProviderRef: resp.CheckoutRequestID,
+		Message:     resp.CustomerMessage,
+	}, nil
+}
+
 // ---- Callback payload shape (Safaricom's actual STK callback envelope) ----
 
 type STKCallbackPayload struct {

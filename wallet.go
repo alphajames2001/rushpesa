@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -14,13 +15,18 @@ import (
 // wallet.go is the consistency-path half of money movement (spec §4.2):
 // synchronous, Postgres-direct, no Redis fast-path shortcuts.
 //
-// Deposits: fully implemented end to end via Daraja STK Push (C2B).
+// Deposits: initiated here through the PaymentProvider interface (see
+// payment.go), so this file doesn't know or care whether Daraja or
+// Palpluss (PAYMENT_PROVIDER env var) is actually handling collection.
+// Daraja's C2B is fully implemented (daraja.go); Palpluss's is
+// intentionally left as a stub (palpluss.go) pending its own C2B wiring.
+//
 // Withdrawals: intentionally stop at creating a 'pending' record. There is
-// NO Daraja B2C integration here — the user is wiring that up separately.
-// Do not add a payout call to this file without B2C credentials configured;
-// ReviewWithdrawal in db.go already debits the balance on approval so the
-// money is reserved and can't be double-spent while the manual payout step
-// happens outside this codebase.
+// NO B2C payout integration for either provider here — that's wired up
+// separately. Do not add a payout call to this file without B2C
+// credentials configured; ReviewWithdrawal in db.go already debits the
+// balance on approval so the money is reserved and can't be double-spent
+// while the manual payout step happens outside this codebase.
 
 const (
 	minDepositKES    = 200.0
@@ -104,27 +110,27 @@ func (a *App) InitiateDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txID, err := a.db.CreateDeposit(r.Context(), userID, req.Amount, req.Phone)
+	txID, err := a.db.CreateDeposit(r.Context(), userID, req.Amount, req.Phone, a.payments.Name())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create deposit record")
 		return
 	}
 
-	stkResp, err := a.daraja.InitiateSTKPush(r.Context(), req.Phone, req.Amount, txID.String())
+	result, err := a.payments.InitiateDeposit(r.Context(), req.Phone, req.Amount, txID.String())
 	if err != nil {
 		_ = a.db.FailDeposit(r.Context(), txID, err.Error())
-		writeError(w, http.StatusBadGateway, "failed to initiate M-Pesa payment: "+err.Error())
+		writeError(w, http.StatusBadGateway, fmt.Sprintf("failed to initiate %s payment: %s", a.payments.Name(), err.Error()))
 		return
 	}
 
-	if err := a.db.SetDepositCheckoutID(r.Context(), txID, stkResp.CheckoutRequestID); err != nil {
+	if err := a.db.SetDepositCheckoutID(r.Context(), txID, result.ProviderRef); err != nil {
 		log.Printf("wallet: failed to attach checkout id for tx %s: %v", txID, err)
 	}
 
 	writeSuccess(w, map[string]any{
 		"transactionId":     txID,
-		"checkoutRequestId": stkResp.CheckoutRequestID,
-		"message":           stkResp.CustomerMessage,
+		"checkoutRequestId": result.ProviderRef,
+		"message":           result.Message,
 	})
 }
 

@@ -62,12 +62,25 @@ type Config struct {
 
 	RedisURL string
 
+	// PaymentProvider selects which deposit-collection provider is active
+	// ("daraja" | "palpluss"). Defaults to daraja — see loadConfig below
+	// and payment.go's NewPaymentProvider. Flipping this back and forth is
+	// the whole point of the abstraction: both clients stay fully
+	// configured regardless of which one is selected.
+	PaymentProvider string
+
 	DarajaEnv            string
 	DarajaConsumerKey    string
 	DarajaConsumerSecret string
 	DarajaShortcode      string
 	DarajaPasskey        string
 	DarajaCallbackURL    string
+
+	PalplussEnv            string
+	PalplussChannelID      string
+	PalplussAPIKey         string
+	PalplussBasicAuthToken string
+	PalplussCallbackURL    string
 
 	GameHouseEdge float64
 }
@@ -89,12 +102,20 @@ func loadConfig() Config {
 
 		RedisURL: os.Getenv("REDIS_URL"),
 
+		PaymentProvider: strings.ToLower(getenv("PAYMENT_PROVIDER", "daraja")),
+
 		DarajaEnv:            getenv("DARAJA_ENV", "sandbox"),
 		DarajaConsumerKey:    os.Getenv("DARAJA_CONSUMER_KEY"),
 		DarajaConsumerSecret: os.Getenv("DARAJA_CONSUMER_SECRET"),
 		DarajaShortcode:      os.Getenv("DARAJA_SHORTCODE"),
 		DarajaPasskey:        os.Getenv("DARAJA_PASSKEY"),
 		DarajaCallbackURL:    os.Getenv("DARAJA_CALLBACK_URL"),
+
+		PalplussEnv:            getenv("PALPLUSS_ENV", "sandbox"),
+		PalplussChannelID:      os.Getenv("PALPLUSS_CHANEL_ID"),
+		PalplussAPIKey:         os.Getenv("PALPLUSS_API_KEY"),
+		PalplussBasicAuthToken: os.Getenv("PALPLUSS_BASIC_AUTH_TOKEN"),
+		PalplussCallbackURL:    os.Getenv("PALPLUSS_CALLBACK_URL"),
 
 		GameHouseEdge: edge,
 	}
@@ -113,10 +134,15 @@ func getenv(key, fallback string) string {
 // not the full App (keeps the Redis-only fast path honest about what it
 // touches).
 type App struct {
-	cfg        Config
-	db         *DB
-	rdb        *RDB
-	daraja     *DarajaClient
+	cfg Config
+	db  *DB
+	rdb *RDB
+	// payments is whichever deposit-collection provider is active (see
+	// payment.go / server.go's loadConfig PAYMENT_PROVIDER). Both
+	// DarajaClient and PalplussClient satisfy this interface — only one is
+	// constructed and assigned here, but a.game and everything else stays
+	// unaware of which.
+	payments   PaymentProvider
 	httpClient *http.Client
 	game       *GameEngine
 	hub        *WSHub
@@ -153,12 +179,13 @@ func main() {
 		cfg:        cfg,
 		db:         db,
 		rdb:        rdb,
-		daraja:     NewDarajaClient(cfg),
+		payments:   NewPaymentProvider(cfg),
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		game:       game,
 		hub:        hub,
 		jwks:       jwks,
 	}
+	log.Printf("payments: using %s as the active deposit provider", app.payments.Name())
 
 	// Round engine + write-behind persistence worker run for the lifetime
 	// of the process, independent of any single HTTP request.
@@ -250,7 +277,8 @@ func (a *App) newRouter() http.Handler {
 		})
 
 		r.Route("/wallet", func(r chi.Router) {
-			r.Post("/daraja/callback", a.DarajaCallback) // unauthenticated Safaricom webhook
+			r.Post("/daraja/callback", a.DarajaCallback)     // unauthenticated Safaricom webhook
+			r.Post("/palpluss/callback", a.PalplussCallback) // unauthenticated Palpluss webhook — stub, see palpluss.go
 
 			r.Group(func(r chi.Router) {
 				r.Use(a.AuthMiddleware)

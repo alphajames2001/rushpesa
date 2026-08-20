@@ -257,25 +257,32 @@ type DashboardWithdrawal struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func (d *DB) CreateDeposit(ctx context.Context, userID uuid.UUID, amount float64, phone string) (uuid.UUID, error) {
+// CreateDeposit records provider alongside the pending row (payment_provider
+// — see the migration in schema-updates.sql) so a webhook from one provider
+// can't be misread against a deposit that was actually initiated through
+// the other, and so the admin dashboard can show which one handled it.
+func (d *DB) CreateDeposit(ctx context.Context, userID uuid.UUID, amount float64, phone, provider string) (uuid.UUID, error) {
 	id := uuid.New()
 	const q = `
-		insert into transactions (id, user_id, type, amount, status, phone)
-		values ($1, $2, 'deposit', $3, 'pending', $4)`
-	_, err := d.pool.Exec(ctx, q, id, userID, amount, phone)
+		insert into transactions (id, user_id, type, amount, status, phone, payment_provider)
+		values ($1, $2, 'deposit', $3, 'pending', $4, $5)`
+	_, err := d.pool.Exec(ctx, q, id, userID, amount, phone, provider)
 	return id, err
 }
 
-func (d *DB) SetDepositCheckoutID(ctx context.Context, txID uuid.UUID, checkoutRequestID string) error {
-	const q = `update transactions set daraja_checkout_id = $2 where id = $1`
-	_, err := d.pool.Exec(ctx, q, txID, checkoutRequestID)
+// SetDepositCheckoutID / GetDepositByCheckoutID use provider_checkout_id,
+// renamed from daraja_checkout_id now that either provider's tracking ref
+// can land here (see schema-updates.sql).
+func (d *DB) SetDepositCheckoutID(ctx context.Context, txID uuid.UUID, providerRef string) error {
+	const q = `update transactions set provider_checkout_id = $2 where id = $1`
+	_, err := d.pool.Exec(ctx, q, txID, providerRef)
 	return err
 }
 
-func (d *DB) GetDepositByCheckoutID(ctx context.Context, checkoutRequestID string) (uuid.UUID, error) {
+func (d *DB) GetDepositByCheckoutID(ctx context.Context, providerRef string) (uuid.UUID, error) {
 	var id uuid.UUID
-	const q = `select id from transactions where daraja_checkout_id = $1 and type = 'deposit'`
-	err := d.pool.QueryRow(ctx, q, checkoutRequestID).Scan(&id)
+	const q = `select id from transactions where provider_checkout_id = $1 and type = 'deposit'`
+	err := d.pool.QueryRow(ctx, q, providerRef).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, ErrNotFound
 	}
