@@ -223,7 +223,7 @@ func (a *App) newRouter() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://gopesa.onrender.com", "https://gopesa-1.onrender.com", "http://localhost:8082"}, // tighten to the real frontend origin before production
+		AllowedOrigins:   []string{"https://dotpesa-1-06rh.onrender.com"}, // tighten to the real frontend origin before production
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
