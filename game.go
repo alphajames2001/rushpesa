@@ -36,7 +36,7 @@ import (
 const (
 	minBetKES         = 10.0
 	maxCashoutKES     = 1000000.0
-	waitingPhaseSecs  = 5
+	waitingPhaseSecs  = 10
 	tickInterval      = 100 * time.Millisecond
 	crashGrowthPerSec = 0.09 // tunable curve steepness
 )
