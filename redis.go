@@ -99,6 +99,14 @@ const currentRoundKey = "round:current"
 const roundHistoryKey = "round:history"
 const persistQueueKey = "persist:queue"
 
+// palplussActiveChannelKey holds whichever Palpluss channel ID an admin has
+// picked as preferred (see admin.go's SetActivePalplussChannel and
+// palpluss.go's resolveChannelID). Stored in Redis rather than only in
+// process memory so a rotation an admin makes actually survives a
+// deploy/restart, the same durability reasoning as every other piece of
+// runtime state in this file.
+const palplussActiveChannelKey = "config:palpluss:active_channel"
+
 // ---- Round state (round:current) ----
 
 func (r *RDB) SetCurrentRound(ctx context.Context, s RoundState) error {
@@ -217,6 +225,28 @@ func (r *RDB) IncrRealBalance(ctx context.Context, userID uuid.UUID, delta float
 		return err
 	}
 	return r.client.HIncrByFloat(ctx, balanceKey(userID), "real", delta).Err()
+}
+
+// GetActivePalplussChannel returns the admin-selected active channel ID, or
+// "" if nothing has been explicitly set yet (callers fall back to the
+// configured pool's first entry / the legacy single-channel env var — see
+// palpluss.go's resolveChannelID).
+func (r *RDB) GetActivePalplussChannel(ctx context.Context) (string, error) {
+	val, err := r.client.Get(ctx, palplussActiveChannelKey).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+}
+
+// SetActivePalplussChannel records channelID as the preferred Palpluss
+// channel — the next InitiateDeposit call picks it up immediately, no
+// redeploy needed.
+func (r *RDB) SetActivePalplussChannel(ctx context.Context, channelID string) error {
+	return r.client.Set(ctx, palplussActiveChannelKey, channelID, 0).Err()
 }
 
 // ---- Fast path: bet placement ----

@@ -63,6 +63,28 @@
             color: #e6e6e6;
             border-color: #444;
         }
+        .top-bar button.danger {
+            color: #ef4444;
+            border-color: #ef444450;
+        }
+        .top-bar button.danger:hover {
+            color: #fff;
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+        .top-bar button:disabled,
+        .top-bar button:disabled:hover {
+            opacity: 0.4;
+            cursor: not-allowed;
+            color: #888;
+            background: none;
+            border-color: #2a2a2a;
+        }
+        .top-bar button.danger:disabled,
+        .top-bar button.danger:disabled:hover {
+            color: #ef4444;
+            opacity: 0.35;
+        }
 
         .container {
             max-width: 960px;
@@ -193,6 +215,7 @@
             <span class="badge" id="connBadge">connecting…</span>
         </div>
         <div style="display:flex; gap:8px;">
+            <button id="injectCrashBtn" class="danger" disabled title="Debug mode only (ENV=debug) — ends the current round immediately at its live multiplier">💥 Inject crash</button>
             <button id="refreshBtn">Refresh now</button>
             <a href="/admin/dashboard.html">← Dashboard</a>
         </div>
@@ -284,6 +307,16 @@
         const log = new Map();
         const MAX_ROWS = 30;
 
+        // Inject-crash only makes sense while a round is actually running —
+        // see game.go's InjectCrash, which itself rejects anything else.
+        // Mirrored here just so the button isn't clickable in a state that
+        // can only ever 409.
+        let currentPhase = null;
+
+        function updateInjectButton() {
+            document.getElementById('injectCrashBtn').disabled = currentPhase !== 'running';
+        }
+
         function renderCurrent(data) {
             document.getElementById('curRoundId').textContent = data.roundId ?? data.id ?? '—';
             const phaseEl = document.getElementById('curPhase');
@@ -294,6 +327,9 @@
                 data.crashPoint != null ? `${data.crashPoint.toFixed(2)}x` : '—';
             document.getElementById('curCountdown').textContent =
                 data.countdown != null ? `${data.countdown}s` : '—';
+
+            currentPhase = data.phase || null;
+            updateInjectButton();
         }
 
         function renderLog() {
@@ -407,6 +443,45 @@
         }
 
         document.getElementById('refreshBtn').addEventListener('click', revealCurrentRound);
+
+        // ---- Inject crash (debug mode only, ENV=debug — see game.go's
+        // InjectCrash and Refactor.txt: "debug dash will give us a button
+        // to inject crash"). Same admin/can_debug-influencer gate as
+        // everything else on this page; the server is the actual source of
+        // truth on both permission and whether debug mode is even on —
+        // this button just avoids an obviously-doomed click when there's no
+        // running round to crash.
+        async function injectCrash() {
+            const btn = document.getElementById('injectCrashBtn');
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_URL}/api/game/admin/inject-crash`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                let body = null;
+                try { body = await res.json(); } catch (e) {}
+
+                if (res.status === 401 || res.status === 403) {
+                    toast(`Inject crash failed (${res.status}): ${body?.error || 'not authorized'}`, 'error');
+                    return;
+                }
+                if (!res.ok) {
+                    toast(`Inject crash failed: ${body?.error || res.statusText}`, 'error');
+                    return;
+                }
+
+                toast(body?.data?.message || 'Crash injected — round will end on the next tick', 'success');
+            } catch (err) {
+                toast(`Inject crash network error: ${err.message}`, 'error');
+                console.error('[round-debug] inject-crash network error:', err);
+            } finally {
+                updateInjectButton();
+            }
+        }
+
+        document.getElementById('injectCrashBtn').addEventListener('click', injectCrash);
 
         // ---- Native WebSocket ----
         let ws = null;

@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,7 +37,7 @@ import (
 const (
 	minBetKES         = 10.0
 	maxCashoutKES     = 1000000.0
-	waitingPhaseSecs  = 5
+	waitingPhaseSecs  = 10
 	tickInterval      = 100 * time.Millisecond
 	crashGrowthPerSec = 0.09 // tunable curve steepness
 )
@@ -47,12 +48,23 @@ type GameEngine struct {
 	hub       *WSHub
 	houseEdge float64
 
+	// debugMode mirrors Config.DebugMode() (ENV=debug). It only gates
+	// whether InjectCrash is callable at all — WHO can call it is still
+	// entirely decided by RequireDebugAccess in middleware.go, unchanged.
+	debugMode bool
+
 	mu           sync.RWMutex
 	currentRound int64
+
+	// forceCrash is set by InjectCrash and consumed once by the running
+	// round's tick loop in playRound, which ends the round immediately at
+	// its current multiplier instead of waiting for the committed
+	// crashPoint. Debug/testing only.
+	forceCrash atomic.Bool
 }
 
-func NewGameEngine(db *DB, rdb *RDB, hub *WSHub, houseEdge float64) *GameEngine {
-	return &GameEngine{db: db, rdb: rdb, hub: hub, houseEdge: houseEdge}
+func NewGameEngine(db *DB, rdb *RDB, hub *WSHub, houseEdge float64, debugMode bool) *GameEngine {
+	return &GameEngine{db: db, rdb: rdb, hub: hub, houseEdge: houseEdge, debugMode: debugMode}
 }
 
 // Run drives the round lifecycle forever. Call this in its own goroutine
@@ -128,6 +140,20 @@ func (g *GameEngine) playRound(ctx context.Context) {
 	defer ticker.Stop()
 
 	for range ticker.C {
+		// Debug-mode crash injection (see InjectCrash below): consumed at
+		// most once, ends the round right now at whatever the multiplier
+		// currently is rather than waiting for the committed crashPoint.
+		// crashPoint itself gets overwritten so everything downstream
+		// (broadcast, settlement, persisted round row) reflects the actual
+		// crash value consistently — there's no discrepancy for testers to
+		// puzzle over between "what the debug dash forced" and "what got
+		// recorded".
+		if g.forceCrash.CompareAndSwap(true, false) {
+			crashPoint = round2(state.Multiplier)
+			state.Multiplier = crashPoint
+			break
+		}
+
 		elapsed := time.Since(state.StartedAt).Seconds()
 		state.Multiplier = math.Exp(crashGrowthPerSec * elapsed)
 
@@ -337,6 +363,27 @@ func (g *GameEngine) AdminRoundDebug(w http.ResponseWriter, r *http.Request) {
 		"roundId": state.ID, "phase": state.Phase,
 		"crashPoint": round2(state.CrashPoint), "countdown": state.Countdown,
 	})
+}
+
+// InjectCrash forces the current round to crash immediately at whatever its
+// live multiplier is. It exists purely for testing (Refactor: "Inject a
+// crash to see and monitor. debug dash will give us a button to inject
+// crash.") and is a no-op error unless the server is running with
+// ENV=debug. Access is already gated by RequireDebugAccess before this
+// handler ever runs — same admin/can_debug-influencer rule as
+// AdminRoundDebug, unchanged.
+func (g *GameEngine) InjectCrash(w http.ResponseWriter, r *http.Request) {
+	if !g.debugMode {
+		writeError(w, http.StatusForbidden, "debug mode is not enabled (start the server with ENV=debug)")
+		return
+	}
+	state, err := g.rdb.GetCurrentRound(r.Context())
+	if err != nil || state == nil || state.Phase != "running" {
+		writeError(w, http.StatusConflict, "no running round to crash")
+		return
+	}
+	g.forceCrash.Store(true)
+	writeSuccess(w, map[string]any{"message": "crash injected — round will end on the next tick"})
 }
 
 type placeBetRequest struct {
