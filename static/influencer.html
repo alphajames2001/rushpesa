@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+<style>
+
+    *{
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    body{
+        background: #121212;
+        font-family: 'Poppins', sans-serif;
+        color: #fff;
+        max-width: 480px;
+        margin-inline: auto;
+        min-height: 100vh;
+        padding-bottom: 40px;
+    }
+
+    /* ---------- Custom SVG icon sizing ---------- */
+
+    .svg-icon{
+        display: block;
+        flex-shrink: 0;
+    }
+
+    /* ---------- Header ---------- */
+
+    header{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #121212;
+        color: #FFF;
+        padding: 16px 20px;
+        border-bottom: 1px solid #262626;
+    }
+
+    .greeting{
+        display: flex;
+        gap: 0.9rem;
+        align-items: center;
+    }
+
+    .avatar-wrap{
+        position: relative;
+    }
+
+    #initials{
+        background: rgb(43, 43, 199);
+        height: 50px;
+        width: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 100px;
+        transition: background 0.2s ease;
+    }
+
+    .avatar-chevron{
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        height: 18px;
+        width: 18px;
+        background: #fff;
+        border: 2px solid #1fde36;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar-chevron ion-icon{
+        font-size: 10px;
+        color: #e7212f;
+    }
+
+    .greeting-text p{
+        font-size: 0.95rem;
+        color: #d9d9d9;
+        font-weight: 400;
+        line-height: 1.3;
+    }
+
+    .greeting-text #fname{
+        font-weight: 500;
+        color: #fff;
+    }
+
+    .icons{
+        display: flex;
+        gap: 0.9rem;
+        align-items: center;
+    }
+
+    .icon-btn{
+        position: relative;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        background: #232323;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon-btn ion-icon{
+        font-size: 20px;
+        color: #d9d9d9;
+    }
+
+    .icon-btn .dot{
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        height: 7px;
+        width: 7px;
+        background: #ff3b30;
+        border-radius: 50%;
+        border: 1.5px solid #121212;
+    }
+
+    /* ---------- Balance Cards ---------- */
+
+    .balance-container{
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 85%;
+        padding: 20px 20px 20px 30px;
+        gap: 1.2rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+
+    }
+
+    .balance-container::-webkit-scrollbar{
+        display: none;
+    }
+
+    .balance-card-wrap{
+        position: relative;
+        height: 15vh;
+        min-height: 180px;
+        
+    }
+
+    .balance-card-bg{
+        position: absolute;
+        inset: 0;
+        transform: translateX(-5px);
+        border-radius: 18px;
+    }
+
+    .balance-card-bg.green{
+        background: linear-gradient(#1bdc31,#39a4dc);
+    }
+
+    .balance-card-bg.blue{
+        background: linear-gradient(#1bdc31, #2596be);
+    }
+
+    .balance-card{
+        position: relative;
+        background: #1e1e1e;
+        height: calc(100% + 2px);
+        width: 100%;
+        border-radius: 18px;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: translateY(-1px);
+    }
+
+    .balance-card::after{
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('./vector.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        pointer-events: none;
+    }
+
+    .card-label{
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .card-label.green-text{
+        color: #3ee06a;
+    }
+
+    .card-label.blue-text{
+        color: #3ee06a;
+    }
+
+    .balance-hidden{
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-top: 14px;
+        min-height: 32px;
+    }
+
+    /* Value container with blur overlay */
+    .balance-value-wrap {
+        position: relative;
+        display: inline-block;
+        min-width: 120px;
+        height: 28px;
+        flex-shrink: 0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .balance-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        line-height: 28px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Blur overlay with backdrop-filter */
+    .blur-overlay {
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        background: rgba(58, 58, 58, 0.3);
+        border-radius: 4px;
+        transition: opacity 0.25s ease;
+        opacity: 1;
+        z-index: 2;
+    }
+
+    /* When revealed, hide the blur overlay */
+    .balance-card.revealed .blur-overlay {
+        opacity: 0;
+    }
+
+    .balance-sub{
+        font-size: 0.8rem;
+        color: #8f8f8f;
+        margin-top: 8px;
+        min-height: 20px;
+    }
+
+    .balance-hidden ion-icon{
+        font-size: 20px;
+        color: #b0b0b0;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    /* Fuliza line with blur */
+    .fuliza-wrap {
+        position: relative;
+        display: inline-block;
+        align-self: flex-start;
+        margin-top: 6px;
+        min-height: 20px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .fuliza-line {
+        font-size: 0.8rem;
+        color: #b0b0b0;
+        position: relative;
+        z-index: 1;
+        white-space: nowrap;
+    }
+
+    .fuliza-blur {
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        background: rgba(58, 58, 58, 0.3);
+        border-radius: 4px;
+        transition: opacity 0.25s ease;
+        opacity: 1;
+        z-index: 2;
+    }
+
+    .balance-card.revealed .fuliza-blur {
+        opacity: 0;
+    }
+
+    /* ---------- My Balances (Airtime / Data) card ---------- */
+
+    .split-row{
+        display: flex;
+        align-items: stretch;
+        margin-top: 16px;
+        gap: 18px;
+    }
+
+    .split-col{
+        flex: 1;
+    }
+
+    .split-col p{
+        font-size: 0.8rem;
+        color: #b0b0b0;
+    }
+
+    .split-col .amount{
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: #fff;
+        margin-top: 6px;
+    }
+
+    .split-divider{
+        width: 1px;
+        background: #3a3a3a;
+    }
+
+    .card-btn{
+        margin-top: auto;
+        border: 1px solid #3ee06a;
+        color: #3ee06a;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        background: #1e1e1e;
+        position: relative;
+        z-index: 1;
+        cursor: pointer;
+    }
+
+    .card-btn.blue{
+        border-color: #3ee06a;
+        color: #3ee06a;
+    }
+
+    .airtime-row{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 14px;
+    }
+
+    .airtime-row p{
+        font-size: 0.8rem;
+        color: #b0b0b0;
+    }
+
+    .airtime-row .amount{
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+        margin-top: 4px;
+    }
+
+    /* ---------- Dots ---------- */
+
+    .dots{
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .dots span{
+        height: 4px;
+        width: 10px;
+        border-radius: 50%;
+        background: #3f3f3f;
+    }
+
+    .dots span.active{
+        background: #2fb872;
+        width: 18px;
+        border-radius: 3px;
+    }
+
+    /* ---------- Quick Actions ---------- */
+
+    .panel{
+        background: #1a1a1a;
+        margin: 12px 20px;
+        border-radius: 14px;
+        padding: 18px;
+    }
+
+    .panel-header{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+    .panel-header h3{
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .view-all{
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #2fb872;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .view-all ion-icon{
+        font-size: 16px;
+    }
+
+    .actions-grid{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        row-gap: 22px;
+        text-align: center;
+    }
+
+    .action-item{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-icon{
+        height: 52px;
+        width: 52px;
+        border-radius: 50%;
+        background: #262626;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .action-icon ion-icon{
+        font-size: 22px;
+        color: #2fb872;
+    }
+
+    .action-item span{
+        font-size: 0.75rem;
+        color: #d9d9d9;
+        line-height: 1.2;
+    }
+
+    /* ---------- Frequents ---------- */
+
+    .frequents{
+        background: #1a1a1a;
+        margin: 12px 20px;
+        border-radius: 14px;
+        padding: 16px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .frequents h3{
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .frequents ion-icon{
+        font-size: 20px;
+        color: #d9d9d9;
+    }
+
+    /* ---------- Explore & Deals ---------- */
+
+    .explore-heading{
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 24px 20px 12px;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .promo-banner{
+        margin: 0 20px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: linear-gradient(135deg,#ffd400,#ffb800);
+        padding: 18px 16px;
+        position: relative;
+        color: #d21f1f;
+    }
+
+    .promo-top{
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #d21f1f;
+        margin-bottom: 4px;
+    }
+
+    .promo-title{
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        color: #ee1c1c;
+    }
+
+    .promo-title span{
+        display: block;
+        color: #1a1a1a;
+    }
+
+    .promo-details{
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .promo-pill{
+        background: rgba(255,255,255,0.85);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #d21f1f;
+        text-align: center;
+        flex: 1;
+    }
+
+    .promo-pill ion-icon{
+        font-size: 16px;
+        display: block;
+        margin: 0 auto 2px;
+    }
+
+    .promo-footer{
+        font-size: 0.6rem;
+        margin-top: 14px;
+        color: #7a1414;
+        font-weight: 600;
+    }
+
+    .scan-pay{
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        border-radius: 30px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .scan-pay ion-icon{
+        font-size: 18px;
+        color: #2fb872;
+    }
+
+    #one{
+        transform: scale(1.5);
+    }
+
+    /* ── Mock M-Pesa withdraw modal ── */
+    .mpesa-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 1000;
+    }
+    .mpesa-modal {
+        width: 100%;
+        max-width: 420px;
+        background: #1c1c1c;
+        border-radius: 20px 20px 0 0;
+        padding: 24px 20px 28px;
+        box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+    }
+    .mpesa-modal h3 {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .mpesa-modal-sub {
+        margin: 0 0 18px;
+        font-size: 13px;
+        color: #9a9a9a;
+    }
+    .mpesa-modal label {
+        display: block;
+        font-size: 12px;
+        color: #9a9a9a;
+        margin-bottom: 6px;
+    }
+    .mpesa-modal input {
+        width: 100%;
+        box-sizing: border-box;
+        background: #121212;
+        border: 1px solid #333;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 6px;
+    }
+    .mpesa-modal input:focus {
+        outline: none;
+        border-color: #37D948;
+    }
+    .mpesa-modal-error {
+        color: #E22533;
+        font-size: 12px;
+        margin: 4px 0 0;
+    }
+    .mpesa-modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .mpesa-modal-btn {
+        flex: 1;
+        border: none;
+        border-radius: 10px;
+        padding: 13px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .mpesa-modal-btn.secondary {
+        background: #2a2a2a;
+        color: #ddd;
+    }
+    .mpesa-modal-btn.primary {
+        background: #37D948;
+        color: #0a0a0a;
+    }
+    .mpesa-modal-btn.primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+</head>
+<body>
+
+    <header>
+        <div class="greeting">
+            <div class="avatar-wrap">
+                <div id="initials">LD</div>
+                <div class="avatar-chevron" onclick="handleInfluencerLogout()" style="cursor:pointer;" title="Logout">
+                    <ion-icon name="chevron-down"></ion-icon>
+                </div>
+            </div>
+            <div class="greeting-text">
+                <p>Good evening,</p>
+                <p id="fname">Loading... 👋</p>
+            </div>
+        </div>
+
+        <div class="icons">
+            <div class="icon-btn">
+                <svg class="svg-icon" width="95" height="108" viewBox="0 0 95 108" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:19px;height:22px;">
+                    <path d="M48.9077 90.5C32.3261 90.5 7.89182 88.4284 3.40521 76C0.420027 67.7307 14.9077 64.0326 14.9077 53C14.9077 25.3858 21.2935 3 48.9077 3" stroke="#37D948" stroke-width="6"/>
+                    <path d="M48.4062 104.5C40.6743 104.5 31.9062 97.732 31.9062 90" stroke="#37D948" stroke-width="6"/>
+                    <path d="M45.9048 90.5C62.4864 90.5 86.9207 88.4284 91.4073 76C94.3925 67.7307 79.9048 64.0326 79.9048 53C79.9048 25.3858 73.519 3 45.9048 3" stroke="#37D948" stroke-width="6"/>
+                    <path d="M46.4062 104.5C54.1382 104.5 62.9062 97.732 62.9062 90" stroke="#37D948" stroke-width="6"/>
+                    <line x1="46.9062" y1="17" x2="46.9062" y2="41" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                </svg>
+                <span class="dot"></span>
+            </div>
+            <div class="icon-btn">
+                <svg class="svg-icon" width="115" height="109" viewBox="0 0 115 109" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:21px;height:20px;">
+                    <circle cx="50" cy="50" r="47" stroke="#37D948" stroke-width="6"/>
+                    <line x1="92.2426" y1="85" x2="112" y2="104.757" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <div class="balance-container">
+
+        <div class="balance-card-wrap">
+            <div class="balance-card-bg green"></div>
+            <div class="balance-card" id="mpesaCard">
+                <p class="card-label green-text">M-PESA Balance</p>
+                <div class="balance-hidden">
+                    <div class="balance-value-wrap">
+                        <span class="balance-value" id="mpesaBalanceValue">Ksh 0.00</span>
+                        <div class="blur-overlay"></div>
+                    </div>
+                    <ion-icon name="eye-outline" class="eye-toggle" onclick="toggleBalance('mpesaCard', this)"></ion-icon>
+                </div>
+                <div class="fuliza-wrap">
+                    <p class="fuliza-line">Available Fuliza: Ksh 300.00</p>
+                    <div class="fuliza-blur"></div>
+                </div>
+                <div class="card-btn" onclick="window.location.reload()">View Statements</div>
+            </div>
+        </div>
+
+        <div class="balance-card-wrap">
+            <div class="balance-card-bg blue"></div>
+            <div class="balance-card">
+                <p class="card-label blue-text">My Balances</p>
+                <div class="split-row">
+                    <div class="split-col">
+                        <p>Airtime</p>
+                        <p class="amount">Ksh 22.67</p>
+                    </div>
+                    <div class="split-divider"></div>
+                    <div class="split-col">
+                        <p>Data</p>
+                        <p class="amount">0 MBs</p>
+                    </div>
+                </div>
+                <div class="card-btn blue">View All Balances</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="dots">
+        <span class="active"></span>
+        <span></span>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Quick Actions</h3>
+            <div class="view-all">
+                View all <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+        </div>
+
+        <div class="actions-grid">
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg id="one" class="svg-icon" width="171" height="171" viewBox="0 0 171 171" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;">
+                        <line x1="86.9852" y1="83.2374" x2="68.2385" y2="103.956" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M109.493 50.0319C114.007 48.3502 118.562 52.4051 117.414 57.0835L95.5662 146.134C94.2444 151.521 86.9471 152.383 84.4055 147.453L66.7425 113.183C65.3896 110.558 63.1162 108.524 60.3576 107.47L23.3551 93.3374C18.1871 91.3634 18.2173 84.0415 23.4013 82.1099L109.493 50.0319Z" stroke="#37D948" stroke-width="6"/>
+                    </svg>
+                </div>
+                <span>Send Money</span>
+            </div>
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="116" height="109" viewBox="0 0 116 109" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:23px;height:22px;">
+                        <line x1="35" y1="64.3677" x2="35" y2="94.3677" stroke="#37D948" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="59" y1="64.3677" x2="59" y2="94.3677" stroke="#37D948" stroke-width="6" stroke-linecap="round"/>
+                        <line x1="84" y1="64.3677" x2="84" y2="94.3677" stroke="#37D948" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M60.4265 105.368H18.9673C17.9386 105.368 17.0776 104.587 16.9769 103.563L12.3992 57.023C12.3377 56.3974 11.9856 55.8372 11.4487 55.5103L3.9601 50.9521C3.36389 50.5891 3 49.9416 3 49.2437V37C3 35.8954 3.89543 35 5 35H60.4265" stroke="#37D948" stroke-width="6"/>
+                        <path d="M55.5735 105.368H97.0327C98.0614 105.368 98.9224 104.587 99.0231 103.563L103.601 57.023C103.662 56.3974 104.014 55.8372 104.551 55.5103L112.04 50.9521C112.636 50.5891 113 49.9416 113 49.2437V37C113 35.8954 112.105 35 111 35H55.5735" stroke="#37D948" stroke-width="6"/>
+                        <path d="M21 26L29.7879 6.53148C30.7583 4.38179 32.8981 3 35.2566 3H81.8932C84.0889 3 86.1092 4.19936 87.1606 6.12698L98 26" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span>Lipa na M-PESA</span>
+            </div>
+            <div class="action-item" onclick="openMpesaWithdrawModal()" style="cursor:pointer;">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="158" height="139" viewBox="0 0 158 139" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:25px;height:22px;">
+                        <path d="M93 103H79H11C6.58172 103 3 99.4183 3 95V11C3 6.58172 6.58172 3 11 3H147C151.418 3 155 6.58172 155 11V95C155 99.4183 151.418 103 147 103H141" stroke="#37D948" stroke-width="6" stroke-linecap="round"/>
+                        <rect x="6" y="34" width="53" height="41" rx="5" stroke="#37D948" stroke-width="6"/>
+                        <circle cx="33" cy="53" r="9" stroke="#37D948" stroke-width="6"/>
+                        <path d="M133.418 58V110.656C133.418 113.97 136.104 116.656 139.418 116.656H145.371L118.977 134.871L91.8496 116.656H94.9277C98.2411 116.656 100.928 113.97 100.928 110.656V58H133.418Z" stroke="#E22533" stroke-width="6"/>
+                    </svg>
+                </div>
+                <span>Withdraw Money</span>
+            </div>
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="74" height="112" viewBox="0 0 74 112" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:22px;">
+                        <path d="M49.0896 109L49.0023 5.77376C49.0016 4.83711 50.1735 4.4135 50.7718 5.13416L71 29.5" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M24.9104 3L24.9977 106.226C24.9984 107.163 23.8265 107.587 23.2282 106.866L3 82.5" stroke="#37D948" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span>Buy Bundles</span>
+            </div>
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="133" height="128" viewBox="0 0 133 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:23px;height:22px;">
+                        <circle cx="61" cy="61" r="58" stroke="#37D948" stroke-width="6"/>
+                        <path d="M10.0152 33.0094C10.0152 33.0094 41.8832 22.8974 61.5 23C81.9487 23.107 112.015 33.9997 112.015 33.9997" stroke="#37D948" stroke-width="6"/>
+                        <path d="M9.99953 84.9903C9.99953 84.9903 41.8676 95.1024 61.4844 94.9998C81.9331 94.8928 112 84 112 84" stroke="#37D948" stroke-width="6"/>
+                        <path d="M32.5094 110.005C32.5094 110.005 22.0885 78.2365 22.0006 58.6196C21.9091 38.1709 32.5094 7.99998 32.5094 7.99998" stroke="#37D948" stroke-width="6"/>
+                        <path d="M87.9984 112.005C87.9984 112.005 98.4194 80.2365 98.5072 60.6196C98.5987 40.1709 87.9984 9.99998 87.9984 9.99998" stroke="#37D948" stroke-width="6"/>
+                        <path d="M77 108.5L100.302 80.9186C101.062 80.019 102.179 79.5 103.357 79.5H127.972C130.544 79.5 132.448 81.893 131.869 84.3994L126.051 109.613C125.713 111.078 124.582 112.23 123.123 112.594L72.9372 125.141C69.2289 126.068 66.4573 121.763 68.8357 118.771L77 108.5Z" fill="#E22533"/>
+                    </svg>
+                </div>
+                <span>International Transfers</span>
+            </div>
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;">
+                        <path d="M103.758 84.4938C99.7877 80.494 90.1725 74.6567 85.5073 72.3043C79.4322 69.2445 78.9322 68.9945 74.1571 72.5418C70.972 74.9092 68.8544 77.0241 65.1269 76.2292C61.3993 75.4342 53.2991 70.9519 46.2064 63.8822C39.1137 56.8125 34.3711 48.4779 33.5736 44.763C32.7761 41.0482 34.9261 38.9558 37.2712 35.7634C40.5762 31.2636 40.3262 30.5136 37.5012 24.4389C35.2986 19.7141 29.291 10.1895 25.2759 6.23968C20.9808 1.99736 20.9808 2.74733 18.2132 3.89728C15.9601 4.84521 13.7985 5.99748 11.7556 7.33963C7.75545 9.99702 5.5354 12.2044 3.98286 15.5218C2.43032 18.8391 1.73281 26.6163 9.7505 41.1807C17.7682 55.7451 23.3933 63.1922 35.0361 74.8017C46.6789 86.4112 55.6316 92.6535 68.7194 99.9932C84.9098 109.06 91.12 107.293 94.4476 105.743C97.7751 104.193 99.9927 101.993 102.655 97.9932C104.001 95.9539 105.156 93.7948 106.105 91.5435C107.258 88.7861 108.008 88.7861 103.758 84.4938Z" stroke="#37D948" stroke-width="6" stroke-miterlimit="10"/>
+                        <path d="M59.1723 14.787L88.0026 14.7857C88.5549 14.7857 89.0026 15.2334 89.0026 15.7857L89.0026 43.5002" stroke="#E22533" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span>Airtime Top up</span>
+            </div>
+            <div class="action-item">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="135" height="137" viewBox="0 0 135 137" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:22px;height:22px;">
+                        <path d="M40 45V92.1365C40 94.6555 42.3004 96.5475 44.7721 96.0612L69.7279 91.1519C70.2378 91.0516 70.7622 91.0516 71.2721 91.1519L96.2279 96.0612C98.6996 96.5475 101 94.6555 101 92.1365V45" stroke="#E22533" stroke-width="6"/>
+                        <mask id="path-2-inside-1_836_78" fill="white">
+                        <rect x="9" y="45" width="117" height="92" rx="4"/>
+                        </mask>
+                        <rect x="9" y="45" width="117" height="92" rx="4" stroke="#37D948" stroke-width="12" mask="url(#path-2-inside-1_836_78)"/>
+                        <mask id="path-3-inside-2_836_78" fill="white">
+                        <rect y="13" width="135" height="37" rx="4"/>
+                        </mask>
+                        <rect y="13" width="135" height="37" rx="4" stroke="#37D948" stroke-width="12" mask="url(#path-3-inside-2_836_78)"/>
+                        <path d="M49 13C49 7.47715 44.7467 3 39.5 3C34.2533 3 30 7.47715 30 13" stroke="#37D948" stroke-width="6"/>
+                        <path d="M110 13C110 7.47715 105.747 3 100.5 3C95.2533 3 91 7.47715 91 13" stroke="#37D948" stroke-width="6"/>
+                    </svg>
+                </div>
+                <span>Tunukiwa Bundles</span>
+            </div>
+            <div class="action-item" onclick="window.location.href='/admin/round-debug.html'" style="cursor:pointer;">
+                <div class="action-icon">
+                    <svg class="svg-icon" width="128" height="132" viewBox="0 0 128 132" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:21px;height:22px;">
+                        <path d="M60.5967 5.24316C61.958 4.28362 63.7718 4.26806 65.1494 5.2041L122.375 44.0889C123.733 45.0119 124.389 46.6712 124.029 48.2734L106.602 125.877C106.191 127.703 104.57 129 102.698 129H19.749C17.7794 129 16.1032 127.566 15.7979 125.62L3.63867 48.1182C3.40266 46.6139 4.04059 45.1058 5.28516 44.2285L60.5967 5.24316Z" stroke="#37D948" stroke-width="6"/>
+                        <path d="M80.7874 93.4619C76.314 89.3558 70.5369 87.0876 64.5517 87.0876C58.5665 87.0876 52.7894 89.3558 48.316 93.4619C47.938 93.7996 47.6288 94.2115 47.4063 94.6737C47.1837 95.1359 47.0524 95.6392 47.0198 96.1542C46.9872 96.6693 47.054 97.1859 47.2163 97.6741C47.3787 98.1622 47.6334 98.6122 47.9656 98.9979C48.2978 99.3836 48.7009 99.6973 49.1515 99.9208C49.6021 100.144 50.0912 100.273 50.5904 100.3C51.0896 100.326 51.5889 100.25 52.0594 100.076C52.5299 99.9017 52.9622 99.6326 53.3311 99.2843C56.4228 96.4469 60.4154 94.8796 64.5517 94.8796C68.688 94.8796 72.6806 96.4469 75.7723 99.2843C76.5205 99.9711 77.5022 100.323 78.5015 100.262C79.5009 100.201 80.4359 99.7331 81.1009 98.9605C81.766 98.1879 82.1065 97.1742 82.0477 96.1423C81.9889 95.1104 81.5356 94.1449 80.7874 93.4582V93.4619Z" fill="#E22533"/>
+                        <path d="M64.5518 71.085C54.4206 71.0706 44.6654 75.0468 37.2753 82.203C36.9011 82.5491 36.5976 82.9688 36.3826 83.4376C36.1676 83.9064 36.0454 84.4148 36.0232 84.9331C36.001 85.4513 36.0792 85.9688 36.2533 86.4554C36.4273 86.942 36.6937 87.3878 37.0368 87.7667C37.3799 88.1455 37.7928 88.4499 38.2513 88.6618C38.7098 88.8737 39.2047 88.989 39.7069 89.0008C40.2091 89.0126 40.7085 88.9208 41.1759 88.7307C41.6433 88.5406 42.0692 88.256 42.4287 87.8937C48.4293 82.1007 56.3372 78.878 64.5518 78.878C72.7665 78.878 80.6743 82.1007 86.6749 87.8937C87.0344 88.256 87.4603 88.5406 87.9277 88.7307C88.3951 88.9208 88.8945 89.0126 89.3967 89.0008C89.899 88.989 90.3938 88.8737 90.8523 88.6618C91.3108 88.4499 91.7237 88.1455 92.0668 87.7667C92.4099 87.3878 92.6763 86.942 92.8504 86.4554C93.0244 85.9688 93.1026 85.4513 93.0804 84.9331C93.0582 84.4148 92.936 83.9064 92.721 83.4376C92.506 82.9688 92.2026 82.5491 91.8284 82.203C84.4382 75.0468 74.6831 71.0706 64.5518 71.085Z" fill="#E22533"/>
+                        <path d="M101.515 69.6303C91.3415 60.2571 78.1839 55.0769 64.5496 55.0769C50.9154 55.0769 37.7577 60.2571 27.5843 69.6303C27.202 69.9675 26.8887 70.3803 26.6631 70.8443C26.4374 71.3083 26.3038 71.8142 26.2702 72.3323C26.2365 72.8504 26.3035 73.3702 26.4672 73.8612C26.6308 74.3521 26.8879 74.8044 27.2232 75.1913C27.5585 75.5783 27.9654 75.8921 28.4198 76.1144C28.8742 76.3367 29.3671 76.4629 29.8695 76.4857C30.3719 76.5085 30.8736 76.4274 31.3451 76.2471C31.8167 76.0669 32.2487 75.7911 32.6156 75.436C41.4052 67.3413 52.7712 62.8679 64.5487 62.8679C76.3262 62.8679 87.6922 67.3413 96.4819 75.436C97.2279 76.125 98.2085 76.4796 99.2078 76.4221C100.207 76.3645 101.143 75.8993 101.811 75.1289C102.478 74.3585 102.821 73.346 102.765 72.3141C102.71 71.2822 102.259 70.3155 101.513 69.6265L101.515 69.6303Z" fill="#E22533"/>
+                        <path d="M64.5508 115.934C67.7264 115.934 70.3008 113.275 70.3008 109.996C70.3008 106.717 67.7264 104.059 64.5508 104.059C61.3751 104.059 58.8008 106.717 58.8008 109.996C58.8008 113.275 61.3751 115.934 64.5508 115.934Z" fill="#E22533"/>
+                    </svg>
+                </div>
+                <span>Home Internet</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="frequents">
+        <h3>Frequents</h3>
+        <ion-icon name="chevron-down"></ion-icon>
+    </div>
+
+    <div class="explore-heading">Explore &amp; Discover Deals 🔥</div>
+
+    <div class="promo-banner">
+        <p class="promo-top">Unlock Club</p>
+        <p class="promo-title">More <span>Surprises</span></p>
+
+        <div class="promo-details">
+            <div class="promo-pill">
+                <ion-icon name="cart-outline"></ion-icon>
+                SPEND<br>Purchase any Shell product via M-PESA
+            </div>
+            <div class="promo-pill">
+                <ion-icon name="cash-outline"></ion-icon>
+                EARN<br>Earn points on every visit
+            </div>
+            <div class="promo-pill">
+                <ion-icon name="gift-outline"></ion-icon>
+                REDEEM<br>Redeem points for exclusive offers
+            </div>
+        </div>
+
+        <p class="promo-footer">For more info call: +254 709 785800 or https://loyalty.shell.co.ke</p>
+
+        <div class="scan-pay">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            Scan to pay
+        </div>
+    </div>
+
+    <script>
+        function toggleBalance(cardId, iconEl){
+            const card = document.getElementById(cardId);
+            const revealed = card.classList.toggle('revealed');
+            iconEl.setAttribute('name', revealed ? 'eye-off-outline' : 'eye-outline');
+        }
+
+        // Randomize the initials avatar background color on every render/reload
+        (function randomizeInitialsColor(){
+            const palette = [
+                '#2B2BC7', '#C0392B', '#8E44AD', '#16A085',
+                '#D35400', '#2980B9', '#C2185B', '#00897B',
+                '#F39C12', '#5D4037', '#6D28D9', '#0E7490'
+            ];
+            const color = palette[Math.floor(Math.random() * palette.length)];
+            const el = document.getElementById('initials');
+            if (el) el.style.background = color;
+        })();
+    </script>
+
+    <script>
+    (function(){
+        const API_URL = window.location.origin + '/api';
+
+        function getToken(){
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('token');
+            if (urlToken) {
+                sessionStorage.setItem('gwave_admin_token', urlToken);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            return sessionStorage.getItem('gwave_admin_token') || '';
+        }
+
+        async function apiFetch(endpoint, options = {}){
+            const token = sessionStorage.getItem('gwave_admin_token');
+            const headers = { ...(options.headers || {}) };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (options.body) headers['Content-Type'] = 'application/json';
+
+            const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+            const data = await res.json();
+
+            if (!res.ok) {
+                if (res.status === 401) {
+                    sessionStorage.removeItem('gwave_admin_token');
+                    sessionStorage.removeItem('gwave_admin_user');
+                    sessionStorage.removeItem('gwave_admin_display_name');
+                    window.location.href = '/admin/login.html';
+                }
+                throw new Error(data.error || 'Request failed.');
+            }
+            return data;
+        }
+
+        function fmtKES(value){
+            const n = parseFloat(value || 0);
+            return 'Ksh ' + n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function getDisplayNameAndInitials(displayName) {
+            const parts = (displayName || '').split(/[\s._-]+/).filter(Boolean);
+            let firstName = parts[0] || 'User';
+            firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+
+            let initials = '';
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+            } else {
+                const word = parts[0] || 'User';
+                if (word.length >= 2) {
+                    initials = (word[0] + word[word.length-1]).toUpperCase();
+                } else {
+                    initials = (word[0] + word[0]).toUpperCase();
+                }
+            }
+            return { firstName, initials };
+        }
+
+        async function loadUserProfile() {
+            try {
+                const res = await apiFetch('/auth/profile');
+                if (res.success && res.data) {
+                    sessionStorage.setItem('gwave_admin_display_name', res.data.displayName);
+                    applyGreetingAndInitials(res.data.displayName);
+                }
+            } catch (err) {
+                console.warn('[Profile] Failed to load profile:', err.message);
+                const user = JSON.parse(sessionStorage.getItem('gwave_admin_user') || 'null');
+                if (user && user.displayName) {
+                    applyGreetingAndInitials(user.displayName);
+                } else if (user && user.email) {
+                    const namePart = user.email.split('@')[0];
+                    applyGreetingAndInitials(namePart);
+                }
+            }
+        }
+
+        function applyGreetingAndInitials(displayName) {
+            const hour = new Date().getHours();
+            const greetWord = hour < 12 ? 'Good morning,' : hour < 18 ? 'Good afternoon,' : 'Good evening,';
+            const greetEl = document.querySelector('.greeting-text p');
+            if (greetEl) greetEl.textContent = greetWord;
+
+            const name = displayName || sessionStorage.getItem('gwave_admin_display_name') || 'User';
+            
+            const { firstName, initials } = getDisplayNameAndInitials(name);
+            document.getElementById('fname').textContent = firstName + ' 👋';
+            document.getElementById('initials').textContent = initials;
+        }
+
+        async function loadBalance(){
+            try {
+                const res = await apiFetch('/influencer/mpesa/balance');
+                document.getElementById('mpesaBalanceValue').textContent = fmtKES(res.data.balance);
+            } catch (err) {
+                console.error('[Influencer] Failed to load balance:', err.message);
+                document.getElementById('mpesaBalanceValue').textContent = 'Ksh 0.00';
+            }
+        }
+
+        (async function init(){
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            
+            await loadUserProfile();
+            
+            await loadBalance();
+
+            setInterval(async () => {
+                await loadBalance();
+            }, 30000);
+        })();
+
+        window.handleInfluencerLogout = function(){
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('gwave_admin_token');
+                sessionStorage.removeItem('gwave_admin_user');
+                sessionStorage.removeItem('gwave_admin_display_name');
+                window.location.href = '/admin/login.html';
+            }
+        };
+
+        window.openMpesaWithdrawModal = function(){
+            const overlay = document.getElementById('mpesaWithdrawOverlay');
+            const input = document.getElementById('mpesaWithdrawAmount');
+            const errorEl = document.getElementById('mpesaWithdrawError');
+            input.value = '';
+            errorEl.style.display = 'none';
+            overlay.style.display = 'flex';
+            setTimeout(() => input.focus(), 50);
+        };
+
+        window.closeMpesaWithdrawModal = function(){
+            document.getElementById('mpesaWithdrawOverlay').style.display = 'none';
+        };
+
+        window.submitMpesaWithdraw = async function(){
+            const input = document.getElementById('mpesaWithdrawAmount');
+            const errorEl = document.getElementById('mpesaWithdrawError');
+            const btn = document.getElementById('mpesaWithdrawSubmitBtn');
+            const amountKES = Number(input.value);
+
+            if (!Number.isFinite(amountKES) || amountKES <= 0) {
+                errorEl.textContent = 'Enter a valid amount.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Processing…';
+            errorEl.style.display = 'none';
+
+            try {
+                const res = await apiFetch('/influencer/mpesa/withdraw', {
+                    method: 'POST',
+                    body: JSON.stringify({ amount: amountKES }), // FIXED: was { amountKES }
+                });
+                document.getElementById('mpesaBalanceValue').textContent = fmtKES(res.data.newBalance);
+                closeMpesaWithdrawModal();
+            } catch (err) {
+                errorEl.textContent = err.message || 'Withdrawal failed.';
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Withdraw';
+            }
+        };
+    })();
+    </script>
+    <div id="mpesaWithdrawOverlay" class="mpesa-modal-overlay" style="display:none;" onclick="if(event.target===this) closeMpesaWithdrawModal()">
+        <div class="mpesa-modal">
+            <h3>Withdraw Money</h3>
+            <p class="mpesa-modal-sub">From your M-PESA balance (mock)</p>
+            <label for="mpesaWithdrawAmount">Amount</label>
+            <input id="mpesaWithdrawAmount" type="number" inputmode="decimal" min="1" step="1" placeholder="e.g. 500" />
+            <p id="mpesaWithdrawError" class="mpesa-modal-error" style="display:none;"></p>
+            <div class="mpesa-modal-actions">
+                <button class="mpesa-modal-btn secondary" onclick="closeMpesaWithdrawModal()">Cancel</button>
+                <button class="mpesa-modal-btn primary" id="mpesaWithdrawSubmitBtn" onclick="submitMpesaWithdraw()">Withdraw</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

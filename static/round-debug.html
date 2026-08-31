@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dotPesa Admin — Round Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d0d0d;
+            color: #e6e6e6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 960px;
+            margin: 0 auto 20px;
+        }
+        .top-bar .title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .top-bar h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .badge {
+            font-size: 11px;
+            background: #2a2a2a;
+            padding: 2px 10px;
+            border-radius: 12px;
+            color: #888;
+        }
+        .badge.live {
+            background: #00e70120;
+            color: #00e701;
+        }
+        .badge.down {
+            background: #ef444420;
+            color: #ef4444;
+        }
+        .top-bar a, .top-bar button {
+            font-size: 13px;
+            color: #888;
+            text-decoration: none;
+            background: none;
+            border: 1px solid #2a2a2a;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .top-bar a:hover, .top-bar button:hover {
+            color: #e6e6e6;
+            border-color: #444;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .card h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .predicted-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .stat label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .stat .value {
+            font-family: 'SF Mono', Menlo, monospace;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .stat .value.crash {
+            color: #00e701;
+        }
+
+        .stat .value.phase-waiting { color: #f59e0b; }
+        .stat .value.phase-running { color: #00e701; }
+        .stat .value.phase-crashed { color: #ef4444; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            text-align: left;
+            color: #666;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #222;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .pending {
+            color: #666;
+        }
+        .match {
+            color: #00e701;
+        }
+        .mismatch {
+            color: #ef4444;
+            font-weight: 700;
+        }
+        .empty-state {
+            color: #555;
+            font-size: 13px;
+            text-align: center;
+            padding: 24px 0;
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+        .toast.error {
+            background: #ef4444;
+            color: #fff;
+        }
+        .toast.success {
+            background: #00e701;
+            color: #0d0d0d;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="title">
+            <h1>Round Debug</h1>
+            <span class="badge" id="connBadge">connecting…</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button id="refreshBtn">Refresh now</button>
+            <a href="/admin/dashboard.html">← Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Current round (revealed pre-run)</h2>
+            <div class="predicted-grid">
+                <div class="stat">
+                    <label>Round #</label>
+                    <div class="value" id="curRoundId">—</div>
+                </div>
+                <div class="stat">
+                    <label>Phase</label>
+                    <div class="value" id="curPhase">—</div>
+                </div>
+                <div class="stat">
+                    <label>Predicted crash point</label>
+                    <div class="value crash" id="curCrash">—</div>
+                </div>
+                <div class="stat">
+                    <label>Countdown at reveal</label>
+                    <div class="value" id="curCountdown">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Prediction vs. actual outcome</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>Predicted (at waiting)</th>
+                        <th>Actual (at crash)</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState">Waiting for the next round to start…</div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toasts"></div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const WS_URL = (API_URL.replace('http', 'ws')) + '/ws';
+        const token = sessionStorage.getItem('dotpesa_admin_token') || sessionStorage.getItem('gwave_admin_token');
+        const storedUser = JSON.parse(sessionStorage.getItem('dotpesa_admin_user') || sessionStorage.getItem('gwave_admin_user') || 'null');
+
+        // Auth guard — admins always pass. Influencers pass too: whether
+        // they actually have can_debug is enforced server-side by
+        // RequireDebugAccess on /api/game/admin/round-debug (see
+        // middleware.go), and the fetch below already bounces a
+        // 401/403 response back to login with a toast. Gating on role
+        // alone here used to lock out every influencer, even ones an
+        // admin had explicitly granted can_debug to.
+        if (!token || !storedUser || (storedUser.role !== 'admin' && storedUser.role !== 'influencer')) {
+            window.location.href = '/admin/login.html';
+        }
+
+        function toast(message, type = 'error') {
+            const container = document.getElementById('toasts');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.textContent = message;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        function setConnBadge(state) {
+            const el = document.getElementById('connBadge');
+            if (state === 'live') {
+                el.textContent = 'live';
+                el.className = 'badge live';
+            } else {
+                el.textContent = 'disconnected';
+                el.className = 'badge down';
+            }
+        }
+
+        // roundId -> { predicted, actual, revealedAt }
+        const log = new Map();
+        const MAX_ROWS = 30;
+
+        function renderCurrent(data) {
+            document.getElementById('curRoundId').textContent = data.roundId ?? data.id ?? '—';
+            const phaseEl = document.getElementById('curPhase');
+            const phase = data.phase || '—';
+            phaseEl.textContent = phase;
+            phaseEl.className = 'value phase-' + phase.toLowerCase();
+            document.getElementById('curCrash').textContent =
+                data.crashPoint != null ? `${data.crashPoint.toFixed(2)}x` : '—';
+            document.getElementById('curCountdown').textContent =
+                data.countdown != null ? `${data.countdown}s` : '—';
+        }
+
+        function renderLog() {
+            const body = document.getElementById('logBody');
+            const empty = document.getElementById('emptyState');
+            const rows = [...log.entries()]
+                .sort((a, b) => b[0] - a[0])
+                .slice(0, MAX_ROWS);
+
+            if (rows.length === 0) {
+                body.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            body.innerHTML = rows.map(([roundId, entry]) => {
+                const predicted = entry.predicted != null ? `${entry.predicted.toFixed(2)}x` : '—';
+                let actualCell = '<span class="pending">pending…</span>';
+                let resultCell = '<span class="pending">—</span>';
+
+                if (entry.actual != null) {
+                    actualCell = `${entry.actual.toFixed(2)}x`;
+                    if (entry.predicted == null) {
+                        resultCell = '<span class="pending">⚠ not captured</span>';
+                    } else {
+                        const isMatch = Math.abs(entry.predicted - entry.actual) < 0.005;
+                        resultCell = isMatch
+                            ? '<span class="match">✓ match</span>'
+                            : '<span class="mismatch">✗ MISMATCH</span>';
+                        if (!isMatch) {
+                            toast(`Round #${roundId}: predicted ${predicted} but crashed at ${actualCell}`, 'error');
+                        }
+                    }
+                }
+
+                return `<tr>
+                    <td>#${roundId}</td>
+                    <td>${predicted}</td>
+                    <td>${actualCell}</td>
+                    <td>${resultCell}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Fetch the pre-committed outcome
+        let lastFetchError = null;
+
+        function setFetchError(msg) {
+            lastFetchError = msg;
+            const badge = document.getElementById('connBadge');
+            if (msg) {
+                badge.textContent = 'reveal failing';
+                badge.className = 'badge down';
+            }
+        }
+
+        async function revealCurrentRound() {
+            try {
+                const res = await fetch(`${API_URL}/api/game/admin/round-debug`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (res.status === 401 || res.status === 403) {
+                    let body = null;
+                    try { body = await res.json(); } catch (e) {}
+                    toast(`Round debug auth failed (${res.status}): ${body?.error || 'not authorized'}`, 'error');
+                    sessionStorage.removeItem('dotpesa_admin_token');
+                    sessionStorage.removeItem('gwave_admin_token');
+                    sessionStorage.removeItem('dotpesa_admin_user');
+                    sessionStorage.removeItem('gwave_admin_user');
+                    setTimeout(() => { window.location.href = '/admin/login.html'; }, 1500);
+                    return;
+                }
+
+                if (!res.ok) {
+                    let body = null;
+                    try { body = await res.json(); } catch (e) {}
+                    const msg = `Round debug fetch failed: ${res.status} ${body?.error || res.statusText}`;
+                    console.error('[round-debug]', msg);
+                    toast(msg, 'error');
+                    setFetchError(msg);
+                    return;
+                }
+
+                const data = await res.json();
+                if (!data.success) {
+                    const msg = `Round debug returned an error: ${data.error || 'unknown'}`;
+                    console.error('[round-debug]', msg);
+                    toast(msg, 'error');
+                    setFetchError(msg);
+                    return;
+                }
+
+                setFetchError(null);
+                setConnBadge('live');
+
+                renderCurrent(data.data);
+
+                const { roundId, crashPoint, phase } = data.data;
+                if (roundId != null && phase === 'waiting' && !log.has(roundId)) {
+                    log.set(roundId, { predicted: crashPoint, actual: null });
+                    renderLog();
+                }
+            } catch (err) {
+                const msg = `Round debug network error: ${err.message}`;
+                console.error('[round-debug]', msg);
+                toast(msg, 'error');
+                setFetchError(msg);
+            }
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', revealCurrentRound);
+
+        // ---- Native WebSocket ----
+        let ws = null;
+        let reconnectTimer = null;
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(WS_URL);
+                setConnBadge('connecting');
+
+                ws.onopen = function() {
+                    setConnBadge('live');
+                    console.log('[round-debug] WebSocket connected');
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        const { event: evt, data } = msg;
+                        console.log('[round-debug] WS event:', evt, data);
+
+                        switch (evt) {
+                            case 'round:waiting':
+                                revealCurrentRound();
+                                break;
+                            case 'round:crashed':
+                                const roundId = data?.id ?? data?.roundId;
+                                const crashPoint = data?.crashPoint;
+                                if (roundId != null) {
+                                    const entry = log.get(roundId) || { predicted: null, actual: null };
+                                    entry.actual = crashPoint;
+                                    log.set(roundId, entry);
+                                    renderLog();
+                                }
+                                break;
+                            case 'round:started':
+                                revealCurrentRound();
+                                break;
+                            default:
+                                // ignore other events
+                                break;
+                        }
+                    } catch (err) {
+                        console.error('[round-debug] WS message parse error:', err);
+                    }
+                };
+
+                ws.onclose = function() {
+                    setConnBadge('down');
+                    console.log('[round-debug] WebSocket closed, reconnecting in 3s...');
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = setTimeout(connectWebSocket, 3000);
+                };
+
+                ws.onerror = function(err) {
+                    console.error('[round-debug] WebSocket error:', err);
+                    ws.close();
+                };
+            } catch (err) {
+                console.error('[round-debug] WebSocket connection error:', err);
+                setConnBadge('down');
+                clearTimeout(reconnectTimer);
+                reconnectTimer = setTimeout(connectWebSocket, 5000);
+            }
+        }
+
+        // Initial load
+        revealCurrentRound();
+        connectWebSocket();
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (ws) ws.close();
+            clearTimeout(reconnectTimer);
+        });
+    </script>
+</body>
+</html>

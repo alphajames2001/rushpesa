@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dotPesa Admin Dashboard</title>
+    <style>
+        /* ── Reset & Base ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d0d0d;
+            color: #e6e6e6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ── Container ── */
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ── Header ── */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #222;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .admin-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-header .logo-icon {
+            height: 32px;
+            width: auto;
+            display: block;
+        }
+        .admin-header .logo .sub {
+            font-size: 13px;
+            color: #666;
+            font-weight: 400;
+            -webkit-text-fill-color: #666;
+        }
+        .admin-header .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Archivo', -apple-system, sans-serif;
+        }
+        .btn-primary {
+            background: #00e701;
+            color: #0d0d0d;
+        }
+        .btn-primary:hover {
+            background: #00ff1a;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #333;
+            color: #aaa;
+        }
+        .btn-outline:hover {
+            border-color: #555;
+            color: #fff;
+        }
+        .btn-success {
+            background: #00e701;
+            color: #0d0d0d;
+        }
+        .btn-success:hover {
+            background: #00ff1a;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ── Stats Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .stat-card .value.green {
+            color: #00e701;
+        }
+        .stat-card .value.yellow {
+            color: #f59e0b;
+        }
+        .stat-card .value.red {
+            color: #ef4444;
+        }
+        .stat-card .value.white {
+            color: #e6e6e6;
+        }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid #222;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            color: #ccc;
+        }
+        .tab.active {
+            color: #00e701;
+            border-bottom-color: #00e701;
+        }
+        .tab .badge {
+            background: #2a2a2a;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 6px;
+            color: #aaa;
+        }
+        .tab .badge.warning {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+
+        /* ── Panel ── */
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+
+        /* ── Cards / Lists ── */
+        .card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card-item {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .card-item .info {
+            flex: 1;
+            min-width: 200px;
+        }
+        .card-item .info .name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .card-item .info .email {
+            font-size: 13px;
+            color: #888;
+        }
+        .card-item .info .meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .card-item .info .badge-status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        .badge-status.pending {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+        .badge-status.approved,
+        .badge-status.completed {
+            background: #00e70120;
+            color: #00e701;
+        }
+        .badge-status.rejected,
+        .badge-status.failed {
+            background: #ef444420;
+            color: #ef4444;
+        }
+        .badge-status.sent {
+            background: #00e70120;
+            color: #00e701;
+        }
+
+        .card-item .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Table ── */
+        .table-wrap {
+            overflow-x: auto;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            color: #888;
+            font-weight: 500;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        tr:hover td {
+            background: #151515;
+        }
+
+        /* ── Empty State ── */
+        .empty {
+            text-align: center;
+            padding: 48px 20px;
+            color: #666;
+        }
+        .empty .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+        .empty p {
+            font-size: 15px;
+        }
+
+        /* ── Loader ── */
+        .loader {
+            display: flex;
+            justify-content: center;
+            padding: 48px 0;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #2a2a2a;
+            border-top-color: #00e701;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Toast ── */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+        }
+        .toast.success {
+            background: #00e701;
+            color: #0d0d0d;
+        }
+        .toast.error {
+            background: #ef4444;
+            color: #fff;
+        }
+        .toast.info {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #e6e6e6;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .admin-header .actions {
+                flex-wrap: wrap;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .card-item {
+                flex-direction: column;
+            }
+            .card-item .actions {
+                width: 100%;
+            }
+        }
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 0;
+            }
+            .tab {
+                padding: 8px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="logo">
+                <span style="font-size:24px;font-weight:700;color:#00e701;">dot</span><span style="font-size:24px;font-weight:700;color:#fff;">Pesa</span>
+                <span class="sub">Admin Dashboard</span>
+            </div>
+            <div class="actions">
+                <button class="btn btn-outline btn-sm" onclick="window.location.href='/admin/round-debug.html'">🎯 Round Debug</button>
+                <button class="btn btn-outline btn-sm" onclick="refreshAll()">↻ Refresh</button>
+                <button class="btn btn-outline btn-sm" onclick="handleLogout()">🚪 Logout</button>
+                <button class="btn btn-outline btn-sm" onclick="window.location.href='/'">← Back to App</button>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="label">Total Users</div><div class="value white" id="statUsers">—</div></div>
+            <div class="stat-card"><div class="label">Total Deposits</div><div class="value green" id="statDeposits">—</div></div>
+            <div class="stat-card"><div class="label">Real Balance</div><div class="value green" id="statBalance">—</div></div>
+            <div class="stat-card">
+                <div class="label">Demo Balance</div>
+                <div class="value white" id="statDemo">—</div>
+            </div>
+            <div class="stat-card"><div class="label">Pending Withdrawals</div><div class="value yellow" id="statPending">—</div></div>
+            <div class="stat-card"><div class="label">Influencer Withdrawn</div><div class="value white" id="statInfluencer">—</div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="dashboard">Dashboard</button>
+            <button class="tab" data-tab="withdrawals">Withdrawals <span class="badge warning" id="wdBadge">0</span></button>
+            <button class="tab" data-tab="transactions">Transactions</button>
+            <button class="tab" data-tab="users">Users</button>
+            <button class="tab" data-tab="influencer">Influencer Withdrawals</button>
+        </div>
+
+        <!-- ── PANEL: Dashboard ── -->
+        <div class="panel active" id="panel-dashboard">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+                <div class="stat-card"><div class="label">Total Withdrawn</div><div class="value white" id="statWithdrawn">—</div></div>
+            </div>
+            <div style="margin-top:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:16px;">
+                <div style="font-weight:500;margin-bottom:12px;">Recent Users</div>
+                <div id="recentUsers"><div class="loader"><div class="spinner"></div></div></div>
+            </div>
+            <div id="palplussChannelCard" style="margin-top:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:16px;display:none;">
+                <div style="font-weight:500;margin-bottom:12px;">Active Palpluss Channel</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <select id="palplussChannelSelect" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e6e6e6;border-radius:6px;padding:8px 10px;font-size:13px;min-width:280px;"></select>
+                    <button class="btn btn-outline btn-sm" onclick="saveActivePalplussChannel()">Switch</button>
+                    <span style="font-size:12px;color:#888;">Deposits use this channel immediately after switching — no restart needed.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── PANEL: Withdrawals ── -->
+        <div class="panel" id="panel-withdrawals">
+            <div id="withdrawalsList"><div class="loader"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- ── PANEL: Transactions ── -->
+        <div class="panel" id="panel-transactions">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px 16px;">
+                <label style="font-size:13px;color:#888;">Type
+                    <select id="txTypeFilter" onchange="loadTransactions(1)" style="margin-left:8px;background:#0d0d0d;border:1px solid #2a2a2a;color:#e6e6e6;border-radius:6px;padding:6px 10px;font-size:13px;">
+                        <option value="">All</option>
+                        <option value="deposit">Deposits</option>
+                        <option value="withdrawal">Withdrawals</option>
+                        <option value="trade_win">Wins</option>
+                        <option value="trade_loss">Losses</option>
+                        <option value="stake">Stakes</option>
+                    </select>
+                </label>
+                <label style="font-size:13px;color:#888;">Status
+                    <select id="txStatusFilter" onchange="loadTransactions(1)" style="margin-left:8px;background:#0d0d0d;border:1px solid #2a2a2a;color:#e6e6e6;border-radius:6px;padding:6px 10px;font-size:13px;">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </label>
+                <button class="btn btn-outline btn-sm" onclick="loadTransactions(1)">Apply</button>
+                <div id="txPageInfo" style="margin-left:auto;font-size:13px;color:#666;"></div>
+            </div>
+            <div id="txList"><div class="loader"><div class="spinner"></div></div></div>
+            <div style="display:flex;justify-content:center;gap:10px;margin-top:16px;">
+                <button class="btn btn-outline btn-sm" onclick="txPage > 1 && loadTransactions(txPage - 1)">← Prev</button>
+                <button class="btn btn-outline btn-sm" onclick="loadTransactions(txPage + 1)">Next →</button>
+            </div>
+        </div>
+
+        <!-- ── PANEL: Users ── -->
+        <div class="panel" id="panel-users">
+            <div id="usersTable"><div class="loader"><div class="spinner"></div></div></div>
+        </div>
+
+        <!-- ── PANEL: Influencer Withdrawals ── -->
+        <div class="panel" id="panel-influencer">
+            <div id="influencerList"><div class="loader"><div class="spinner"></div></div></div>
+        </div>
+
+    </div>
+
+    <!-- ── Toast Container ── -->
+    <div class="toast-container" id="toasts"></div>
+
+    <script>
+        // ── Config ──
+        const API_URL = window.location.origin;
+
+        // ── Toast ──
+        function toast(message, type = 'info') {
+            const container = document.getElementById('toasts');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.textContent = message;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        // ── Token Management ──
+        function getToken() {
+            return sessionStorage.getItem('dotpesa_admin_token') || '';
+        }
+
+        function setToken(token) {
+            sessionStorage.setItem('dotpesa_admin_token', token);
+        }
+
+        function removeToken() {
+            sessionStorage.removeItem('dotpesa_admin_token');
+            sessionStorage.removeItem('dotpesa_admin_user');
+        }
+
+        let token = getToken();
+
+        // ── Fetch Helper ──
+        async function apiFetch(endpoint, options = {}) {
+            const currentToken = getToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
+            }
+            
+            const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+            
+            const data = await res.json();
+            if (!res.ok) {
+                if (res.status === 401) {
+                    toast('Session expired. Please log in again.', 'error');
+                    removeToken();
+                    setTimeout(() => {
+                        window.location.href = '/admin/login.html';
+                    }, 500);
+                }
+                throw new Error(data.error || data.message || 'Request failed');
+            }
+            return data;
+        }
+
+        // ── Auth Check ──
+        async function checkAuth() {
+            const currentToken = getToken();
+            if (!currentToken) {
+                window.location.href = '/admin/login.html';
+                return false;
+            }
+            try {
+                const data = await apiFetch('/api/admin/stats');
+                if (!data.success) {
+                    throw new Error('Not authenticated');
+                }
+                return true;
+            } catch (e) {
+                removeToken();
+                window.location.href = '/admin/login.html';
+                return false;
+            }
+        }
+
+        // ── Logout ──
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                removeToken();
+                toast('Logged out successfully', 'success');
+                setTimeout(() => {
+                    window.location.href = '/admin/login.html';
+                }, 500);
+            }
+        }
+
+        // ── Load Data ──
+        let txPage = 1;
+
+        async function loadAll() {
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadWithdrawals(),
+                    loadTransactions(txPage),
+                    loadUsers(),
+                    loadInfluencerWithdrawals(),
+                    loadPalplussChannels(),
+                ]);
+            } catch (e) {
+                console.error('[Admin] Load error:', e);
+                toast('Error loading data: ' + e.message, 'error');
+            }
+        }
+
+        // ── Palpluss active channel switcher ──
+        // Only rendered when palpluss is the active payment provider; the
+        // backend 400s /api/admin/palpluss/channels otherwise, which we
+        // treat as "hide the card" rather than an error.
+        async function loadPalplussChannels() {
+            const card = document.getElementById('palplussChannelCard');
+            try {
+                const data = await apiFetch('/api/admin/palpluss/channels');
+                if (!data.success) return;
+                const { channels, active } = data.data;
+                const select = document.getElementById('palplussChannelSelect');
+                select.innerHTML = channels.map(id =>
+                    `<option value="${id}" ${id === active ? 'selected' : ''}>${id}</option>`
+                ).join('');
+                card.style.display = '';
+            } catch (e) {
+                // daraja is active, or nothing configured — just keep the card hidden.
+                card.style.display = 'none';
+            }
+        }
+
+        async function saveActivePalplussChannel() {
+            const select = document.getElementById('palplussChannelSelect');
+            const channelId = select.value;
+            if (!channelId) return;
+            try {
+                await apiFetch('/api/admin/palpluss/active-channel', {
+                    method: 'POST',
+                    body: JSON.stringify({ channelId }),
+                });
+                toast('Active Palpluss channel updated', 'success');
+            } catch (e) {
+                toast('Failed to switch channel: ' + e.message, 'error');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const data = await apiFetch('/api/admin/stats');
+                if (data.success) {
+                    const s = data.data;
+                    document.getElementById('statUsers').textContent = s.totalUsers || 0;
+                    document.getElementById('statDeposits').textContent = fmtKES(s.totalDeposited);
+                    document.getElementById('statBalance').textContent = fmtKES(s.totalBalanceReal);
+                    document.getElementById('statDemo').textContent = fmtKES(s.totalBalanceDemo);
+                    document.getElementById('statWithdrawn').textContent = fmtKES(s.totalWithdrawn);
+                    document.getElementById('statInfluencer').textContent = fmtKES(s.totalInfluencerWithdrawn);
+                    document.getElementById('statPending').textContent = s.pendingWithdrawals || 0;
+                }
+            } catch (e) {
+                console.error('[Stats] Error:', e);
+            }
+        }
+
+        async function loadWithdrawals() {
+            try {
+                const data = await apiFetch('/api/admin/withdrawals/pending');
+                const container = document.getElementById('withdrawalsList');
+                const badge = document.getElementById('wdBadge');
+
+                if (!data.success || !data.data.withdrawals || data.data.withdrawals.length === 0) {
+                    badge.textContent = '0';
+                    document.getElementById('statPending').textContent = '0';
+                    container.innerHTML = `<div class="empty"><div class="icon">✅</div><p>No pending withdrawals</p></div>`;
+                    return;
+                }
+
+                const list = data.data.withdrawals;
+                badge.textContent = list.length;
+                document.getElementById('statPending').textContent = list.length;
+
+                let html = '<div class="card-list">';
+                for (const w of list) {
+                    const name = w.display_name || w.email || 'Unknown';
+                    const email = w.email || '';
+                    const amount = fmtKES(w.amount_kes);
+                    html += `
+                        <div class="card-item">
+                            <div class="info">
+                                <div class="name">${escapeHtml(name)}</div>
+                                <div class="email">${escapeHtml(email)}</div>
+                                <div class="meta">${amount} · Phone: ${escapeHtml(w.phone)}</div>
+                                <div class="meta">${new Date(w.created_at).toLocaleString()}</div>
+                                <span class="badge-status pending">Pending Review</span>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-success btn-sm" onclick="reviewWithdrawal('${w.id}','approve')">✓ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="reviewWithdrawal('${w.id}','reject')">✕ Reject</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('[Withdrawals] Error:', e);
+                document.getElementById('withdrawalsList').innerHTML =
+                    `<div class="empty"><div class="icon">⚠️</div><p>Failed to load withdrawals</p></div>`;
+            }
+        }
+
+        const TX_TYPE_LABELS = {
+            deposit: 'Deposit',
+            withdrawal: 'Withdrawal',
+            trade_win: 'Win',
+            trade_loss: 'Loss',
+            stake: 'Stake',
+        };
+
+        async function loadTransactions(page = 1) {
+            txPage = page;
+            try {
+                const type = document.getElementById('txTypeFilter').value;
+                const status = document.getElementById('txStatusFilter').value;
+                const params = new URLSearchParams({ page, limit: 20 });
+                if (type) params.set('type', type);
+                if (status) params.set('status', status);
+
+                const data = await apiFetch(`/api/admin/transactions?${params.toString()}`);
+                const container = document.getElementById('txList');
+
+                if (!data.success || !data.data.transactions || data.data.transactions.length === 0) {
+                    container.innerHTML = `<div class="empty"><div class="icon">💳</div><p>No transactions found</p></div>`;
+                    document.getElementById('txPageInfo').textContent = '';
+                    return;
+                }
+
+                const list = data.data.transactions;
+                document.getElementById('txPageInfo').textContent =
+                    `Page ${data.data.page} of ${data.data.totalPages} · ${data.data.total} total`;
+
+                let html = '<div class="card-list">';
+                for (const item of list) {
+                    const name = item.display_name || item.email || 'Unknown';
+                    const email = item.email || '';
+                    const typeLabel = TX_TYPE_LABELS[item.type] || item.type;
+                    const amount = fmtKES(item.amount_kes);
+                    const statusClass = item.status === 'completed' ? 'approved' : item.status === 'failed' ? 'rejected' : 'pending';
+
+                    html += `
+                        <div class="card-item">
+                            <div class="info">
+                                <div class="name">${escapeHtml(name)} <span style="color:#666;font-weight:400;">· ${typeLabel}</span></div>
+                                <div class="email">${escapeHtml(email)}</div>
+                                <div class="meta">${amount}${item.method ? ' · ' + escapeHtml(item.method) : ''}</div>
+                                <div class="meta">${new Date(item.created_at).toLocaleString()}</div>
+                                <span class="badge-status ${statusClass}">${escapeHtml(item.status)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('[Transactions] Error:', e);
+                document.getElementById('txList').innerHTML =
+                    `<div class="empty"><div class="icon">⚠️</div><p>Failed to load transactions</p></div>`;
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const data = await apiFetch('/api/admin/users?limit=50');
+                const container = document.getElementById('usersTable');
+
+                if (!data.success || !data.data.users || data.data.users.length === 0) {
+                    container.innerHTML = `<div class="empty"><div class="icon">👤</div><p>No users found</p></div>`;
+                    document.getElementById('recentUsers').innerHTML = '<div style="color:#666;">No users</div>';
+                    return;
+                }
+
+                const users = data.data.users;
+
+                // Recent users for dashboard
+                let recentHtml = '';
+                const recentUsers = users.slice(0, 5);
+                for (const u of recentUsers) {
+                    const name = u.displayName || u.email || 'Unknown';
+                    const role = u.role || 'user';
+                    recentHtml += `
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a1a;font-size:14px;">
+                            <span>${escapeHtml(name)}</span>
+                            <span style="color:#888;font-size:13px;">${escapeHtml(u.email || '')}</span>
+                            <span>
+                                <span style="background:#2a2a2a;padding:2px 8px;border-radius:4px;font-size:11px;">${role}</span>
+                                <span style="color:#666;font-size:11px;">Demo: ${fmtKES(u.demoBalance)}</span>
+                                <span style="color:#00e701;font-size:11px;">Real: ${fmtKES(u.realBalance)}</span>
+                            </span>
+                        </div>
+                    `;
+                }
+                document.getElementById('recentUsers').innerHTML = recentHtml || '<div style="color:#666;">No users</div>';
+
+                // Full users table
+                const ROLE_OPTIONS = ['user', 'admin', 'influencer'];
+                let tableHtml = `
+                    <table>
+                        <thead><tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th title="Grants round-debug access (/admin/round-debug.html). Admins always have it regardless of this toggle — it only matters for influencer accounts.">Debug</th>
+                            <th>Balances</th>
+                            <th>Joined</th>
+                        </tr></thead>
+                        <tbody>
+                `;
+                for (const u of users) {
+                    const name = u.displayName || u.email || 'Unknown';
+                    const role = u.role || 'user';
+                    const roleOptionsHtml = ROLE_OPTIONS.map(r =>
+                        `<option value="${r}" ${r === role ? 'selected' : ''}>${r}</option>`
+                    ).join('');
+                    const debugCellHtml = renderDebugCellHtml(u.id, role, u.canDebug);
+                    tableHtml += `
+                        <tr data-user-id="${u.id}">
+                            <td><strong>${escapeHtml(name)}</strong></td>
+                            <td style="color:#888;">${escapeHtml(u.email || '')}</td>
+                            <td>
+                                <select
+                                    data-current="${role}"
+                                    onchange="updateUserRole('${u.id}', this.value, this)"
+                                    style="background:#0d0d0d;border:1px solid #2a2a2a;color:#e6e6e6;border-radius:4px;padding:4px 8px;font-size:12px;">
+                                    ${roleOptionsHtml}
+                                </select>
+                            </td>
+                            <td class="debug-cell">${debugCellHtml}</td>
+                            <td style="font-size:12px;">
+                                <span style="color:#666;">Demo: ${fmtKES(u.demoBalance)}</span>
+                                <span style="color:#00e701;margin-left:8px;">Real: ${fmtKES(u.realBalance)}</span>
+                            </td>
+                            <td style="color:#666;font-size:12px;">${new Date(u.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                    `;
+                }
+                tableHtml += '</tbody></table>';
+                container.innerHTML = `<div class="table-wrap">${tableHtml}</div>`;
+            } catch (e) {
+                console.error('[Users] Error:', e);
+                document.getElementById('usersTable').innerHTML =
+                    `<div class="empty"><div class="icon">⚠️</div><p>Failed to load users</p></div>`;
+            }
+        }
+
+        async function loadInfluencerWithdrawals() {
+            try {
+                const data = await apiFetch('/api/admin/influencer-withdrawals');
+                const container = document.getElementById('influencerList');
+
+                if (!data.success || !data.data.withdrawals || data.data.withdrawals.length === 0) {
+                    container.innerHTML = `<div class="empty"><div class="icon">🔄</div><p>No influencer withdrawals</p></div>`;
+                    return;
+                }
+
+                const list = data.data.withdrawals;
+                let html = '<div class="card-list">';
+                for (const w of list) {
+                    // FIXED: backend returns username, not display_name
+                    const name = w.username || w.email || 'Unknown';
+                    const email = w.email || w.username || '';
+                    const amount = fmtKES(w.amount);
+                    const statusClass = w.status === 'sent' ? 'sent' : w.status === 'failed' ? 'failed' : 'pending';
+                    html += `
+                        <div class="card-item">
+                            <div class="info">
+                                <div class="name">${escapeHtml(name)}</div>
+                                <div class="email">${escapeHtml(email)}</div>
+                                <div class="meta">${amount} · Status: <span class="badge-status ${statusClass}">${escapeHtml(w.status)}</span></div>
+                                <div class="meta">${new Date(w.createdAt).toLocaleString()}</div>
+                            </div>
+                            ${w.status === 'pending' ? `
+                            <div class="actions">
+                                <button class="btn btn-success btn-sm" onclick="markInfluencerWithdrawal('${w.id}','sent')">✓ Mark Sent</button>
+                                <button class="btn btn-danger btn-sm" onclick="markInfluencerWithdrawal('${w.id}','failed')">✕ Mark Failed</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('[Influencer] Error:', e);
+                container.innerHTML = `<div class="empty"><div class="icon">⚠️</div><p>Failed to load influencer withdrawals</p></div>`;
+            }
+        }
+
+        // ── Actions ──
+        // Debug access only means anything for influencer accounts — admins
+        // already pass RequireDebugAccess unconditionally (middleware.go), so
+        // the checkbox is disabled (not hidden) for every other role, rather
+        // than implying the toggle does something it doesn't for them.
+        // Shared between the initial table render and updateUserRole below,
+        // so promoting/demoting someone to/from influencer updates this cell
+        // immediately instead of needing a full table reload.
+        function renderDebugCellHtml(userId, role, canDebug) {
+            if (role === 'influencer') {
+                return `<input type="checkbox" ${canDebug ? 'checked' : ''}
+                           onchange="updateDebugAccess('${userId}', this.checked, this)"
+                           style="width:16px;height:16px;cursor:pointer;" />`;
+            }
+            return `<input type="checkbox" disabled title="Only applies to influencer accounts"
+                       style="width:16px;height:16px;opacity:0.3;" />`;
+        }
+
+        async function updateUserRole(userId, role, selectEl) {
+            const previous = selectEl.dataset.current;
+            if (role === previous) return;
+
+            let currentAdminId = null;
+            try {
+                currentAdminId = JSON.parse(sessionStorage.getItem('dotpesa_admin_user') || '{}').id;
+            } catch (e) { /* ignore */ }
+
+            let confirmMsg = `Change this user's role to "${role}"?`;
+            if (userId === currentAdminId && role !== 'admin') {
+                confirmMsg = `⚠️ You're changing your OWN role to "${role}". You will likely lose admin access immediately. Continue?`;
+            }
+            if (!confirm(confirmMsg)) {
+                selectEl.value = previous;
+                return;
+            }
+
+            selectEl.disabled = true;
+            try {
+                // FIXED: use PATCH instead of POST
+                await apiFetch(`/api/admin/users/${userId}/role`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ role })
+                });
+                selectEl.dataset.current = role;
+                // Debug access isn't touched by a role change on the backend
+                // (db.go's SetRole never writes can_debug), so a newly
+                // promoted influencer starts unchecked here too — this just
+                // keeps the toggle's enabled/disabled state in sync with the
+                // new role without a full table reload.
+                const row = selectEl.closest('tr');
+                const debugCell = row ? row.querySelector('.debug-cell') : null;
+                if (debugCell) {
+                    debugCell.innerHTML = renderDebugCellHtml(userId, role, false);
+                }
+                toast(`Role updated to ${role}`, 'success');
+            } catch (e) {
+                selectEl.value = previous;
+                toast(e.message || 'Failed to update role', 'error');
+            } finally {
+                selectEl.disabled = false;
+            }
+        }
+
+        async function updateDebugAccess(userId, enabled, checkboxEl) {
+            checkboxEl.disabled = true;
+            try {
+                await apiFetch(`/api/admin/users/${userId}/debug-access`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ enabled })
+                });
+                toast(`Round-debug access ${enabled ? 'granted' : 'revoked'}`, 'success');
+            } catch (e) {
+                checkboxEl.checked = !enabled;
+                toast(e.message || 'Failed to update debug access', 'error');
+            } finally {
+                checkboxEl.disabled = false;
+            }
+        }
+
+        async function reviewWithdrawal(withdrawalId, action) {
+            if (!confirm(`Review withdrawal as ${action.toUpperCase()}?`)) return;
+            try {
+                // FIXED: send 'id' not 'withdrawalId'
+                await apiFetch('/api/admin/withdrawals/review', {
+                    method: 'POST',
+                    body: JSON.stringify({ id: withdrawalId, action })
+                });
+                toast(`Withdrawal ${action}d successfully`, 'success');
+                loadWithdrawals();
+                loadStats();
+                loadTransactions(txPage);
+            } catch (e) {
+                toast(e.message || 'Failed to review withdrawal', 'error');
+            }
+        }
+
+        async function markInfluencerWithdrawal(id, status) {
+            if (!confirm(`Mark this withdrawal as ${status.toUpperCase()}?`)) return;
+            try {
+                await apiFetch(`/api/admin/influencer-withdrawals/${id}/mark-${status}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ notes: `Marked as ${status} by admin` })
+                });
+                toast(`Withdrawal marked as ${status}`, 'success');
+                loadInfluencerWithdrawals();
+                loadStats();
+            } catch (e) {
+                toast(e.message || 'Failed to update withdrawal', 'error');
+            }
+        }
+
+        async function refreshAll() {
+            toast('Refreshing...', 'info');
+            await loadAll();
+            toast('All data refreshed', 'success');
+        }
+
+        // ── Tab Switching ──
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                const panel = document.getElementById('panel-' + this.dataset.tab);
+                if (panel) panel.classList.add('active');
+            });
+        });
+
+        // ── Helpers ──
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Everything in this app is KES — no USD leg, so this is the one
+        // formatter used for every amount on the dashboard.
+        function fmtKES(value) {
+            const n = parseFloat(value || 0);
+            return 'Ksh ' + n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ── Init ──
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const urlToken = params.get('token');
+            if (urlToken) {
+                setToken(urlToken);
+                token = urlToken;
+                window.history.replaceState({}, document.title, window.location.pathname);
+                toast('Logged in successfully', 'success');
+            }
+
+            token = getToken();
+            if (!token) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+
+            try {
+                const authenticated = await checkAuth();
+                if (authenticated) {
+                    await loadAll();
+                    setInterval(loadAll, 30000);
+                } else {
+                    window.location.href = '/admin/login.html';
+                }
+            } catch (e) {
+                console.error('[Admin] Init error:', e);
+                toast('Failed to load admin data', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
