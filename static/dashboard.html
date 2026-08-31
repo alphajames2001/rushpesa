@@ -426,6 +426,10 @@
             <div class="stat-card"><div class="label">Total Users</div><div class="value white" id="statUsers">—</div></div>
             <div class="stat-card"><div class="label">Total Deposits</div><div class="value green" id="statDeposits">—</div></div>
             <div class="stat-card"><div class="label">Real Balance</div><div class="value green" id="statBalance">—</div></div>
+            <div class="stat-card">
+                <div class="label">Demo Balance</div>
+                <div class="value white" id="statDemo">—</div>
+            </div>
             <div class="stat-card"><div class="label">Pending Withdrawals</div><div class="value yellow" id="statPending">—</div></div>
             <div class="stat-card"><div class="label">Influencer Withdrawn</div><div class="value white" id="statInfluencer">—</div></div>
         </div>
@@ -437,7 +441,7 @@
             <button class="tab" data-tab="transactions">Transactions</button>
             <button class="tab" data-tab="users">Users</button>
             <button class="tab" data-tab="influencer">Influencer Withdrawals</button>
-            <button class="tab" data-tab="channels">Payment Channels</button>
+            <button class="tab" data-tab="payments">Payments</button>
         </div>
 
         <!-- ── PANEL: Dashboard ── -->
@@ -497,12 +501,11 @@
             <div id="influencerList"><div class="loader"><div class="spinner"></div></div></div>
         </div>
 
-        <!-- ── PANEL: Payment Channels ── -->
-        <div class="panel" id="panel-channels">
-            <div style="margin-bottom:16px;color:#888;font-size:13px;">
-                Palpluss routes deposits through whichever channel is marked Active below. Switching takes effect immediately for new deposits — no redeploy needed. Configured via the <code style="background:#1a1a1a;padding:1px 6px;border-radius:4px;">PALPLUSS_CHANNEL_IDS</code> environment variable.
+        <!-- ── PANEL: Payments ── -->
+        <div class="panel" id="panel-payments">
+            <div id="palplussChannelCard" style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:16px;max-width:480px;">
+                <div class="loader"><div class="spinner"></div></div>
             </div>
-            <div id="channelsList"><div class="loader"><div class="spinner"></div></div></div>
         </div>
 
     </div>
@@ -609,7 +612,7 @@
                     loadTransactions(txPage),
                     loadUsers(),
                     loadInfluencerWithdrawals(),
-                    loadPaymentChannels(),
+                    loadPalplussChannels(),
                 ]);
             } catch (e) {
                 console.error('[Admin] Load error:', e);
@@ -625,6 +628,7 @@
                     document.getElementById('statUsers').textContent = s.totalUsers || 0;
                     document.getElementById('statDeposits').textContent = fmtKES(s.totalDeposited);
                     document.getElementById('statBalance').textContent = fmtKES(s.totalBalanceReal);
+                    document.getElementById('statDemo').textContent = fmtKES(s.totalBalanceDemo);
                     document.getElementById('statWithdrawn').textContent = fmtKES(s.totalWithdrawn);
                     document.getElementById('statInfluencer').textContent = fmtKES(s.totalInfluencerWithdrawn);
                     document.getElementById('statPending').textContent = s.pendingWithdrawals || 0;
@@ -765,6 +769,7 @@
                             <span style="color:#888;font-size:13px;">${escapeHtml(u.email || '')}</span>
                             <span>
                                 <span style="background:#2a2a2a;padding:2px 8px;border-radius:4px;font-size:11px;">${role}</span>
+                                <span style="color:#666;font-size:11px;">Demo: ${fmtKES(u.demoBalance)}</span>
                                 <span style="color:#00e701;font-size:11px;">Real: ${fmtKES(u.realBalance)}</span>
                             </span>
                         </div>
@@ -781,7 +786,7 @@
                             <th>Email</th>
                             <th>Role</th>
                             <th title="Grants round-debug access (/admin/round-debug.html). Admins always have it regardless of this toggle — it only matters for influencer accounts.">Debug</th>
-                            <th>Real Balance</th>
+                            <th>Balances</th>
                             <th>Joined</th>
                         </tr></thead>
                         <tbody>
@@ -807,7 +812,8 @@
                             </td>
                             <td class="debug-cell">${debugCellHtml}</td>
                             <td style="font-size:12px;">
-                                <span style="color:#00e701;">${fmtKES(u.realBalance)}</span>
+                                <span style="color:#666;">Demo: ${fmtKES(u.demoBalance)}</span>
+                                <span style="color:#00e701;margin-left:8px;">Real: ${fmtKES(u.realBalance)}</span>
                             </td>
                             <td style="color:#666;font-size:12px;">${new Date(u.createdAt).toLocaleDateString()}</td>
                         </tr>
@@ -862,62 +868,6 @@
             } catch (e) {
                 console.error('[Influencer] Error:', e);
                 container.innerHTML = `<div class="empty"><div class="icon">⚠️</div><p>Failed to load influencer withdrawals</p></div>`;
-            }
-        }
-
-        // ── Payment Channels (Palpluss rotation) ──
-        // See admin.go's ListPaymentChannels/SetActivePalplussChannel: the
-        // pool comes from PALPLUSS_CHANNEL_IDS, and the active one is
-        // stored in Redis so a switch here takes effect on the very next
-        // deposit, no redeploy required.
-        async function loadPaymentChannels() {
-            try {
-                const data = await apiFetch('/api/admin/payment-channels');
-                const container = document.getElementById('channelsList');
-
-                if (!data.success || !data.data.channels || data.data.channels.length === 0) {
-                    container.innerHTML = `<div class="empty"><div class="icon">🔌</div><p>No Palpluss channels configured — set PALPLUSS_CHANNEL_IDS</p></div>`;
-                    return;
-                }
-
-                const list = data.data.channels;
-                let html = '<div class="card-list">';
-                for (const c of list) {
-                    html += `
-                        <div class="card-item">
-                            <div class="info">
-                                <div class="name">${escapeHtml(c.label)}</div>
-                                <div class="meta">Channel ID: ${escapeHtml(c.id)}</div>
-                                <span class="badge-status ${c.active ? 'approved' : 'pending'}">${c.active ? 'Active' : 'Inactive'}</span>
-                            </div>
-                            <div class="actions">
-                                ${c.active ? '' : `<button class="btn btn-primary btn-sm" onclick="setActiveChannel('${c.id}', this)">Set Active</button>`}
-                            </div>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-                container.innerHTML = html;
-            } catch (e) {
-                console.error('[Payment Channels] Error:', e);
-                document.getElementById('channelsList').innerHTML =
-                    `<div class="empty"><div class="icon">⚠️</div><p>Failed to load payment channels</p></div>`;
-            }
-        }
-
-        async function setActiveChannel(channelId, btnEl) {
-            if (!confirm(`Route new Palpluss deposits through channel ${channelId}?`)) return;
-            btnEl.disabled = true;
-            try {
-                await apiFetch('/api/admin/payment-channels/palpluss/active', {
-                    method: 'POST',
-                    body: JSON.stringify({ channelId })
-                });
-                toast(`Active channel switched to ${channelId}`, 'success');
-                loadPaymentChannels();
-            } catch (e) {
-                toast(e.message || 'Failed to switch channel', 'error');
-                btnEl.disabled = false;
             }
         }
 
@@ -1029,6 +979,61 @@
                 loadStats();
             } catch (e) {
                 toast(e.message || 'Failed to update withdrawal', 'error');
+            }
+        }
+
+        // ── Payments: Palpluss channel picker ──
+        async function loadPalplussChannels() {
+            const card = document.getElementById('palplussChannelCard');
+            try {
+                const data = await apiFetch('/api/admin/payment/palpluss-channels');
+                const { supported, channels, active } = data.data;
+
+                if (!supported) {
+                    card.innerHTML = `<div style="color:#888;font-size:13px;">
+                        Active payment provider isn't Palpluss (PAYMENT_PROVIDER env var), so there's no channel to pick between.
+                    </div>`;
+                    return;
+                }
+                if (!channels || channels.length === 0) {
+                    card.innerHTML = `<div style="color:#888;font-size:13px;">
+                        No channel IDs configured — set PALPLUSS_CHANEL_ID (comma-separated for more than one).
+                    </div>`;
+                    return;
+                }
+
+                const optionsHtml = channels.map(c =>
+                    `<option value="${escapeHtml(c)}" ${c === active ? 'selected' : ''}>${escapeHtml(c)}</option>`
+                ).join('');
+
+                card.innerHTML = `
+                    <div style="font-weight:500;margin-bottom:4px;">Active Palpluss Channel</div>
+                    <div style="color:#666;font-size:12px;margin-bottom:12px;">New M-Pesa deposits go through whichever channel is selected here. Takes effect immediately, but resets to the first configured channel on the next restart/redeploy (not persisted).</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="palplussChannelSelect" style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;color:#e6e6e6;border-radius:6px;padding:8px 10px;font-size:13px;">
+                            ${optionsHtml}
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="setPalplussChannel()">Switch</button>
+                    </div>
+                `;
+            } catch (e) {
+                card.innerHTML = `<div style="color:#f66;font-size:13px;">Failed to load: ${escapeHtml(e.message || '')}</div>`;
+            }
+        }
+
+        async function setPalplussChannel() {
+            const select = document.getElementById('palplussChannelSelect');
+            if (!select) return;
+            const channelId = select.value;
+            try {
+                await apiFetch('/api/admin/payment/palpluss-channel', {
+                    method: 'PATCH',
+                    body: JSON.stringify({ channelId })
+                });
+                toast(`Active channel switched to ${channelId}`, 'success');
+            } catch (e) {
+                toast(e.message || 'Failed to switch channel', 'error');
+                loadPalplussChannels(); // reset the select back to whatever's actually active
             }
         }
 
