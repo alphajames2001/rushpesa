@@ -220,90 +220,47 @@ func (a *App) MarkInfluencerWithdrawal(w http.ResponseWriter, r *http.Request) {
 	writeSuccess(w, map[string]string{"id": id.String(), "status": status})
 }
 
-// ---- Payment channel provisioning (Palpluss channel rotation) ----
-//
-// Refactor: "We need to provision for multiple palpluss chanel ids, a
-// chanel ID will direct deposits to a specific wallet, we have more than
-// one, we need to be able to rotate them from the dashboard, so provision
-// endpoints to see how many we have, and pick the preffered as an admin."
-//
-// The pool of available channel IDs is configured via the
-// PALPLUSS_CHANNEL_IDS env var (see server.go's parsePalplussChannels);
-// which one is currently "active" is stored in Redis (see redis.go's
-// Get/SetActivePalplussChannel) so a rotation takes effect immediately and
-// survives restarts, without needing a redeploy. This only affects the
-// Palpluss provider — Daraja has no equivalent notion of channels.
-
-type paymentChannelView struct {
-	ID     string `json:"id"`
-	Label  string `json:"label"`
-	Active bool   `json:"active"`
-}
-
-// ListPaymentChannels shows every configured Palpluss channel and which one
-// is currently active, so the dashboard can render the rotation picker.
-func (a *App) ListPaymentChannels(w http.ResponseWriter, r *http.Request) {
-	channels := a.cfg.PalplussChannels
-	if len(channels) == 0 && a.cfg.PalplussChannelID != "" {
-		// No rotation pool configured — fall back to showing the single
-		// legacy channel as the only (and therefore active) option.
-		channels = []PalplussChannel{{ID: a.cfg.PalplussChannelID, Label: a.cfg.PalplussChannelID}}
-	}
-
-	active, err := a.rdb.GetActivePalplussChannel(r.Context())
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load active payment channel")
+// GetPalplussChannels returns the configured PALPLUSS_CHANEL_ID pool and
+// which one is currently active, so the dashboard can render a picker.
+// "supported": false means the active payment provider isn't Palpluss
+// (e.g. PAYMENT_PROVIDER=daraja) — Daraja has no equivalent multi-channel
+// concept, so the dashboard should hide the control rather than show an
+// empty one.
+func (a *App) GetPalplussChannels(w http.ResponseWriter, r *http.Request) {
+	pc, ok := a.payments.(*PalplussClient)
+	if !ok {
+		writeSuccess(w, map[string]any{"supported": false, "channels": []string{}, "active": ""})
 		return
 	}
-	if active == "" {
-		if len(channels) > 0 {
-			active = channels[0].ID
-		} else {
-			active = a.cfg.PalplussChannelID
-		}
+	channels := pc.Channels()
+	if channels == nil {
+		channels = []string{}
 	}
-
-	out := make([]paymentChannelView, 0, len(channels))
-	for _, c := range channels {
-		out = append(out, paymentChannelView{ID: c.ID, Label: c.Label, Active: c.ID == active})
-	}
-	writeSuccess(w, map[string]any{
-		"provider": "palpluss",
-		"channels": out,
-		"active":   active,
-	})
+	writeSuccess(w, map[string]any{"supported": true, "channels": channels, "active": pc.ActiveChannel()})
 }
 
-type setActiveChannelRequest struct {
+type setPalplussChannelRequest struct {
 	ChannelID string `json:"channelId"`
 }
 
-// SetActivePalplussChannel lets an admin pick which configured channel new
-// deposits should route through. Only IDs present in PALPLUSS_CHANNEL_IDS
-// (or the legacy PALPLUSS_CHANEL_ID) are accepted, so this can't be used to
-// point deposits at an arbitrary, unconfigured channel.
-func (a *App) SetActivePalplussChannel(w http.ResponseWriter, r *http.Request) {
-	var req setActiveChannelRequest
+// SetPalplussChannel switches which configured Palpluss channel ID new
+// deposits use. Takes effect immediately in memory (no redeploy needed) —
+// it is NOT persisted anywhere, so it resets to the first entry in
+// PALPLUSS_CHANEL_ID on the next restart/redeploy.
+func (a *App) SetPalplussChannel(w http.ResponseWriter, r *http.Request) {
+	pc, ok := a.payments.(*PalplussClient)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "active payment provider is not palpluss")
+		return
+	}
+	var req setPalplussChannelRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ChannelID == "" {
 		writeError(w, http.StatusBadRequest, "channelId is required")
 		return
 	}
-
-	valid := req.ChannelID == a.cfg.PalplussChannelID
-	for _, c := range a.cfg.PalplussChannels {
-		if c.ID == req.ChannelID {
-			valid = true
-			break
-		}
-	}
-	if !valid {
-		writeError(w, http.StatusBadRequest, "unknown channel id — must be one of the configured PALPLUSS_CHANNEL_IDS")
+	if err := pc.SetActiveChannel(req.ChannelID); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	if err := a.rdb.SetActivePalplussChannel(r.Context(), req.ChannelID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to set active payment channel")
-		return
-	}
-	writeSuccess(w, map[string]any{"provider": "palpluss", "active": req.ChannelID})
+	writeSuccess(w, map[string]any{"active": req.ChannelID})
 }
