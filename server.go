@@ -76,14 +76,65 @@ type Config struct {
 	DarajaPasskey        string
 	DarajaCallbackURL    string
 
-	PalplussEnv            string
+	PalplussEnv string
+	// PalplussChannelID is the legacy single-channel fallback
+	// (PALPLUSS_CHANEL_ID). Kept so existing deployments that haven't set
+	// up PALPLUSS_CHANNEL_IDS keep working unchanged.
 	PalplussChannelID      string
 	PalplussAPIKey         string
 	PalplussBasicAuthToken string
 	PalplussCallbackURL    string
+	// PalplussChannels is the rotation pool (PALPLUSS_CHANNEL_IDS) — one
+	// PalPluss channel ID directs deposits to a specific wallet, and an
+	// admin picks which one is "active" at runtime (see admin.go's
+	// ListPaymentChannels/SetActivePalplussChannel and palpluss.go's
+	// resolveChannelID). Empty when unset; NewPalplussClient falls back to
+	// PalplussChannelID in that case.
+	PalplussChannels []PalplussChannel
 
 	GameHouseEdge float64
 }
+
+// PalplussChannel is one entry in the rotation pool: a PalPluss channel ID
+// (routes deposits to a specific wallet) plus a human-readable label for
+// the admin dashboard.
+type PalplussChannel struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+}
+
+// parsePalplussChannels reads PALPLUSS_CHANNEL_IDS, a comma-separated list
+// of "channelId" or "channelId:Label" entries, e.g.
+// "1234:Main Till,5678:Backup Till". Whitespace around each part is
+// trimmed; entries without a label use the ID as its own label.
+func parsePalplussChannels(raw string) []PalplussChannel {
+	var out []PalplussChannel
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		id, label := part, part
+		if idx := strings.Index(part, ":"); idx != -1 {
+			id = strings.TrimSpace(part[:idx])
+			label = strings.TrimSpace(part[idx+1:])
+			if label == "" {
+				label = id
+			}
+		}
+		out = append(out, PalplussChannel{ID: id, Label: label})
+	}
+	return out
+}
+
+// DebugMode reports whether the app is running with ENV=debug. Alongside
+// the existing "development"/"production" values, debug mode unlocks
+// testing-only affordances gated separately from role/permission checks —
+// currently just the round crash-injection endpoint (see game.go's
+// InjectCrash). It does NOT change who is allowed to call it: that's still
+// entirely governed by RequireDebugAccess (admin, or influencer with
+// profiles.can_debug) exactly as before.
+func (c Config) DebugMode() bool { return c.Env == "debug" }
 
 func loadConfig() Config {
 	edge, err := strconv.ParseFloat(getenv("GAME_HOUSE_EDGE", "0.03"), 64)
@@ -116,6 +167,7 @@ func loadConfig() Config {
 		PalplussAPIKey:         os.Getenv("PALPLUSS_API_KEY"),
 		PalplussBasicAuthToken: os.Getenv("PALPLUSS_BASIC_AUTH_TOKEN"),
 		PalplussCallbackURL:    os.Getenv("PALPLUSS_CALLBACK_URL"),
+		PalplussChannels:       parsePalplussChannels(os.Getenv("PALPLUSS_CHANNEL_IDS")),
 
 		GameHouseEdge: edge,
 	}
@@ -173,19 +225,22 @@ func main() {
 	}
 
 	hub := NewWSHub()
-	game := NewGameEngine(db, rdb, hub, cfg.GameHouseEdge)
+	game := NewGameEngine(db, rdb, hub, cfg.GameHouseEdge, cfg.DebugMode())
 
 	app := &App{
 		cfg:        cfg,
 		db:         db,
 		rdb:        rdb,
-		payments:   NewPaymentProvider(cfg),
+		payments:   NewPaymentProvider(cfg, rdb),
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		game:       game,
 		hub:        hub,
 		jwks:       jwks,
 	}
 	log.Printf("payments: using %s as the active deposit provider", app.payments.Name())
+	if cfg.DebugMode() {
+		log.Printf("game: DEBUG mode enabled — round crash-injection endpoint is active")
+	}
 
 	// Round engine + write-behind persistence worker run for the lifetime
 	// of the process, independent of any single HTTP request.
@@ -273,6 +328,10 @@ func (a *App) newRouter() http.Handler {
 				r.Post("/cashout", a.game.Cashout)
 
 				r.With(a.RequireDebugAccess).Get("/admin/round-debug", a.game.AdminRoundDebug)
+				// Debug-mode only (ENV=debug) — see game.go's InjectCrash.
+				// Same permission gate as round-debug above: admin always,
+				// influencer only with profiles.can_debug.
+				r.With(a.RequireDebugAccess).Post("/admin/inject-crash", a.game.InjectCrash)
 			})
 		})
 
@@ -310,6 +369,12 @@ func (a *App) newRouter() http.Handler {
 			r.Get("/transactions", a.ListTransactions)
 			r.Get("/influencer-withdrawals", a.ListInfluencerWithdrawals)
 			r.Post("/influencer-withdrawals/{id}/{action}", a.MarkInfluencerWithdrawal)
+
+			// Palpluss channel rotation (Refactor: "provision endpoints to
+			// see how many we have, and pick the preffered as an admin").
+			// See admin.go / palpluss.go's resolveChannelID.
+			r.Get("/payment-channels", a.ListPaymentChannels)
+			r.Post("/payment-channels/palpluss/active", a.SetActivePalplussChannel)
 		})
 	})
 

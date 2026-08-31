@@ -24,22 +24,55 @@ import (
 
 type PalplussClient struct {
 	env            string // "sandbox" | "production"
-	channelID      string
 	apiKey         string
 	basicAuthToken string
 	callbackURL    string
 	httpClient     *http.Client
+
+	// defaultChannelID is the legacy single-channel fallback
+	// (PALPLUSS_CHANEL_ID), used when no rotation pool is configured.
+	defaultChannelID string
+	// channels is the configured rotation pool (PALPLUSS_CHANNEL_IDS) —
+	// see server.go's PalplussChannel / parsePalplussChannels.
+	channels []PalplussChannel
+	// rdb resolves whichever channel an admin has picked as active (see
+	// admin.go's SetActivePalplussChannel). May be nil in tests; resolution
+	// falls back to the pool/default in that case.
+	rdb *RDB
 }
 
-func NewPalplussClient(cfg Config) *PalplussClient {
+func NewPalplussClient(cfg Config, rdb *RDB) *PalplussClient {
 	return &PalplussClient{
-		env:            cfg.PalplussEnv,
-		channelID:      cfg.PalplussChannelID,
-		apiKey:         cfg.PalplussAPIKey,
-		basicAuthToken: cfg.PalplussBasicAuthToken,
-		callbackURL:    cfg.PalplussCallbackURL,
-		httpClient:     &http.Client{Timeout: 15 * time.Second},
+		env:              cfg.PalplussEnv,
+		apiKey:           cfg.PalplussAPIKey,
+		basicAuthToken:   cfg.PalplussBasicAuthToken,
+		callbackURL:      cfg.PalplussCallbackURL,
+		httpClient:       &http.Client{Timeout: 15 * time.Second},
+		defaultChannelID: cfg.PalplussChannelID,
+		channels:         cfg.PalplussChannels,
+		rdb:              rdb,
 	}
+}
+
+// resolveChannelID picks which Palpluss channel (i.e. which wallet) a
+// deposit routes to. Priority order:
+//  1. The admin-selected active channel in Redis (see admin.go's
+//     SetActivePalplussChannel) — this is what lets ops rotate wallets from
+//     the dashboard with zero redeploy.
+//  2. The first entry in the configured PALPLUSS_CHANNEL_IDS pool, if no
+//     admin selection has been made yet.
+//  3. The legacy single PALPLUSS_CHANEL_ID env var, for deployments that
+//     haven't set up a rotation pool at all.
+func (p *PalplussClient) resolveChannelID(ctx context.Context) string {
+	if p.rdb != nil {
+		if active, err := p.rdb.GetActivePalplussChannel(ctx); err == nil && active != "" {
+			return active
+		}
+	}
+	if len(p.channels) > 0 {
+		return p.channels[0].ID
+	}
+	return p.defaultChannelID
 }
 
 func (p *PalplussClient) Name() string { return "palpluss" }
@@ -124,7 +157,7 @@ func (p *PalplussClient) InitiateDeposit(ctx context.Context, phone string, amou
 		Phone:            phone,
 		AccountReference: ref,
 		TransactionDesc:  "Deposit", // 7 chars, comfortably under the 13-char cap
-		ChannelID:        p.channelID,
+		ChannelID:        p.resolveChannelID(ctx),
 		CallbackURL:      p.callbackURL,
 	}
 	payload, err := json.Marshal(body)

@@ -36,11 +36,13 @@ type DepositInitResult struct {
 
 // NewPaymentProvider picks the active provider based on cfg.PaymentProvider.
 // Defaults to "daraja" for anything unset/unrecognized so existing
-// deployments don't need to change anything to keep working.
-func NewPaymentProvider(cfg Config) PaymentProvider {
+// deployments don't need to change anything to keep working. rdb is only
+// used by Palpluss, to resolve whichever channel ID an admin has rotated to
+// (see palpluss.go's resolveChannelID) — Daraja ignores it.
+func NewPaymentProvider(cfg Config, rdb *RDB) PaymentProvider {
 	switch cfg.PaymentProvider {
 	case "palpluss":
-		return NewPalplussClient(cfg)
+		return NewPalplussClient(cfg, rdb)
 	default:
 		return NewDarajaClient(cfg)
 	}
