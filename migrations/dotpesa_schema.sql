@@ -99,3 +99,11 @@ create index if not exists idx_transactions_checkout_id on transactions(provider
 create index if not exists idx_influencer_withdrawals_user on influencer_withdrawals(user_id);
 
 commit;
+
+--ziD8dGL44f!XDms
+
+create table if not exists app_settings (
+    key        text primary key,
+    value      text not null,
+    updated_at timestamptz not null default now()
+);
