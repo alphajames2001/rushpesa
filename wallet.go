@@ -29,7 +29,7 @@ import (
 // while the manual payout step happens outside this codebase.
 
 const (
-	minDepositKES    = 200.0
+	minDepositKES    = 300.0
 	maxWithdrawalKES = 100000.0
 )
 
@@ -102,7 +102,7 @@ func (a *App) InitiateDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Amount < minDepositKES {
-		writeError(w, http.StatusBadRequest, "minimum deposit is KES 200")
+		writeError(w, http.StatusBadRequest, "minimum deposit is KES 300")
 		return
 	}
 	if !isValidKenyanPhone(req.Phone) {
