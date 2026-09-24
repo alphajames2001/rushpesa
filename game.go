@@ -34,7 +34,7 @@ import (
 // rather than silently pulling in a full Engine.IO server implementation.
 
 const (
-	minBetKES         = 10.0
+	minBetKES         = 100.0
 	maxCashoutKES     = 1000000.0
 	waitingPhaseSecs  = 10
 	tickInterval      = 100 * time.Millisecond
