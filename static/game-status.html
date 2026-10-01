@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>dotPesa Admin — Game Status</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --ink: #0d0d0d;
+            --text: #e6e6e6;
+            --muted: #7a7a7a;
+            --line: #2a2a2a;
+            --brand: #00e701;
+            --crash: #ef4444;
+            --warn: #f59e0b;
+            --font: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: var(--font);
+            background: var(--ink);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            min-height: 100dvh;
+            padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+        }
+        :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+        /* Top bar */
+        .bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+        }
+        .brand { font-size: 1.125rem; font-weight: 700; color: #fff; }
+        .brand b { color: var(--brand); font-weight: 700; }
+        .brand span { margin-left: 10px; font-size: 0.875rem; font-weight: 500; color: var(--muted); }
+        .bar-right { display: flex; align-items: center; gap: 16px; }
+        .conn { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--muted); }
+        .conn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+        .conn[data-state="live"]::before { background: var(--brand); }
+        .conn[data-state="down"]::before { background: var(--warn); }
+        .back {
+            font-size: 0.8125rem;
+            color: #aaa;
+            text-decoration: none;
+            border: 1px solid var(--line);
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+        .back:hover { color: var(--text); border-color: #444; }
+
+        /* Layout */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding-top: clamp(24px, 6vh, 64px);
+            gap: clamp(24px, 5vh, 56px);
+        }
+
+        /* State — the one loud element */
+        .phase {
+            font-size: clamp(3rem, 14vw, 10rem);
+            font-weight: 800;
+            font-stretch: 125%;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+            color: #fff;
+            overflow-wrap: anywhere;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+        .phase[data-phase="crashed"] { color: var(--crash); }
+        .phase.stale { opacity: 0.35; }
+        .round {
+            margin-top: 14px;
+            font-size: 1rem;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Free text */
+        .note {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: auto;
+            padding-top: clamp(20px, 4vh, 40px);
+            border-top: 1px solid var(--line);
+        }
+        h1 {
+            font-weight: 600;
+            font-stretch: 80%;
+            line-height: 1.05;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        h1[data-size="l"] { font-size: clamp(2.5rem, 8vw, 6rem); }
+        h1[data-size="m"] { font-size: clamp(1.75rem, 5.5vw, 3.5rem); }
+        h1[data-size="s"] { font-size: clamp(1.25rem, 3.5vw, 2.25rem); }
+        h1.is-empty { color: #3d3d3d; }
+
+        .note label { font-size: 0.8125rem; color: var(--muted); }
+        .field { display: flex; gap: 10px; align-items: stretch; }
+        textarea {
+            flex: 1;
+            min-width: 0;
+            resize: vertical;
+            min-height: 52px;
+            padding: 12px 16px;
+            font: inherit;
+            font-size: 1rem;
+            color: var(--text);
+            background: #151515;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+        }
+        textarea::placeholder { color: #555; }
+        textarea:focus { outline: none; border-color: var(--brand); }
+        button {
+            font: inherit;
+            font-size: 0.875rem;
+            color: #aaa;
+            background: none;
+            border: 1px solid var(--line);
+            padding: 0 18px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        button:hover { color: var(--text); border-color: #444; }
+
+        @media (max-width: 480px) {
+            .field { flex-direction: column; }
+            button { padding: 12px 18px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .phase { transition: none; }
+        }
+    </style>
+</head>
+<body>
+    <header class="bar">
+        <div class="brand"><b>dot</b>Pesa<span>Game status</span></div>
+        <div class="bar-right">
+            <span class="conn" id="conn" data-state="connecting">Connecting</span>
+            <a class="back" id="backLink" href="/admin/dashboard.html">← Dashboard</a>
+        </div>
+    </header>
+
+    <main>
+        <section>
+            <p class="phase" id="phase" role="status" aria-live="polite" data-phase="">Connecting</p>
+            <p class="round" id="round">Round —</p>
+        </section>
+
+        <section class="note">
+            <h1 id="note" class="is-empty" data-size="l">Your text appears here</h1>
+            <label for="noteInput">Text to show</label>
+            <div class="field">
+                <textarea id="noteInput" rows="2" autocomplete="off" placeholder="Type anything"></textarea>
+                <button type="button" id="clearBtn">Clear</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = window.location.origin;
+        const WS_URL = API_URL.replace(/^http/, 'ws') + '/ws';
+
+        const token = sessionStorage.getItem('dotpesa_admin_token') || sessionStorage.getItem('gwave_admin_token');
+        let storedUser = null;
+        try {
+            storedUser = JSON.parse(sessionStorage.getItem('dotpesa_admin_user') || sessionStorage.getItem('gwave_admin_user') || 'null');
+        } catch (e) {}
+
+        // Same access rules as round-debug: admins, or influencers an admin
+        // granted can_debug. Role is checked here only to skip a pointless
+        // load; the real gate is RequireDebugAccess on the game-status
+        // endpoint below, which bounces anyone refused back to login.
+        const allowed = token && storedUser && (storedUser.role === 'admin' || storedUser.role === 'influencer');
+        if (!allowed) {
+            window.location.replace('/admin/login.html');
+        } else {
+            start();
+        }
+
+        function start() {
+            const phaseEl = document.getElementById('phase');
+            const roundEl = document.getElementById('round');
+            const connEl = document.getElementById('conn');
+            const noteEl = document.getElementById('note');
+            const noteInput = document.getElementById('noteInput');
+
+            if (storedUser.role === 'influencer') {
+                document.getElementById('backLink').href = '/admin/influencer.html';
+                document.getElementById('backLink').textContent = '← Back';
+            }
+
+            const LABELS = { waiting: 'Waiting', running: 'Running', crashed: 'Crashed' };
+
+            function setPhase(raw) {
+                const phase = String(raw || '').toLowerCase();
+                phaseEl.dataset.phase = phase;
+                phaseEl.textContent = LABELS[phase] || (phase ? phase.charAt(0).toUpperCase() + phase.slice(1) : '—');
+            }
+
+            function setRound(id) {
+                if (id != null) roundEl.textContent = `Round #${id}`;
+            }
+
+            function setConn(state) {
+                connEl.dataset.state = state;
+                connEl.textContent = state === 'live' ? 'Live' : state === 'down' ? 'Disconnected, retrying' : 'Connecting';
+                phaseEl.classList.toggle('stale', state === 'down');
+            }
+
+            // Bumped on every websocket state change so a slower sync
+            // response can never overwrite a newer state (e.g. a sync
+            // started at "running" landing after "crashed").
+            let version = 0;
+
+            function bounceToLogin() {
+                ['dotpesa_admin_token', 'gwave_admin_token', 'dotpesa_admin_user', 'gwave_admin_user']
+                    .forEach(k => sessionStorage.removeItem(k));
+                window.location.replace('/admin/login.html');
+            }
+
+            // Authoritative read through the access-gated endpoint. It only
+            // returns the round id and phase (see AdminGameStatus in
+            // game.go), so the crash point never reaches this page.
+            async function sync() {
+                const seen = version;
+                try {
+                    const res = await fetch(`${API_URL}/api/game/admin/game-status`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (res.status === 401 || res.status === 403) {
+                        bounceToLogin();
+                        return;
+                    }
+                    if (!res.ok) return;
+                    const body = await res.json();
+                    if (!body.success || seen !== version) return;
+                    setRound(body.data.roundId ?? body.data.id);
+                    setPhase(body.data.phase);
+                } catch (e) {
+                    // The websocket badge already reflects connectivity.
+                }
+            }
+
+            // ---- Websocket ----
+            let ws = null;
+            let reconnectTimer = null;
+
+            function connect() {
+                setConn('connecting');
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = () => {
+                    setConn('live');
+                    sync();
+                };
+
+                ws.onmessage = (event) => {
+                    let msg;
+                    try { msg = JSON.parse(event.data); } catch (e) { return; }
+                    const data = msg.data || {};
+                    const id = data.id ?? data.roundId;
+
+                    switch (msg.event) {
+                        case 'round:waiting':
+                            version++;
+                            setPhase('waiting');
+                            setRound(id);
+                            sync();
+                            break;
+                        case 'round:started':
+                            version++;
+                            setPhase('running');
+                            setRound(id);
+                            sync();
+                            break;
+                        case 'round:crashed':
+                            version++;
+                            setPhase('crashed');
+                            setRound(id);
+                            break;
+                    }
+                };
+
+                ws.onclose = () => {
+                    setConn('down');
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = setTimeout(connect, 3000);
+                };
+
+                ws.onerror = () => ws.close();
+            }
+
+            // ---- Free text (temporary, never stored) ----
+            function renderNote() {
+                const text = noteInput.value;
+                const empty = text.trim() === '';
+                noteEl.textContent = empty ? 'Your text appears here' : text;
+                noteEl.classList.toggle('is-empty', empty);
+                noteEl.dataset.size = text.length > 140 ? 's' : text.length > 60 ? 'm' : 'l';
+            }
+
+            noteInput.addEventListener('input', renderNote);
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                noteInput.value = '';
+                renderNote();
+                noteInput.focus();
+            });
+
+            sync();
+            connect();
+
+            window.addEventListener('beforeunload', () => {
+                clearTimeout(reconnectTimer);
+                if (ws) { ws.onclose = null; ws.close(); }
+            });
+        }
+    </script>
+</body>
+</html>
