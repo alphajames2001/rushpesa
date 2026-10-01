@@ -34,7 +34,7 @@ import (
 // rather than silently pulling in a full Engine.IO server implementation.
 
 const (
-	minBetKES         = 100.0
+	minBetKES         = 10.0
 	maxCashoutKES     = 1000000.0
 	waitingPhaseSecs  = 10
 	tickInterval      = 100 * time.Millisecond
@@ -337,6 +337,19 @@ func (g *GameEngine) AdminRoundDebug(w http.ResponseWriter, r *http.Request) {
 		"roundId": state.ID, "phase": state.Phase,
 		"crashPoint": round2(state.CrashPoint), "countdown": state.Countdown,
 	})
+}
+
+// AdminGameStatus is AdminRoundDebug without the crash point: same
+// RequireDebugAccess gate (admin, or influencer with can_debug), but the
+// response only carries what's safe to show on a screen other people can
+// see — the round id and its phase. Used by /admin/game-status.html.
+func (g *GameEngine) AdminGameStatus(w http.ResponseWriter, r *http.Request) {
+	state, err := g.rdb.GetCurrentRound(r.Context())
+	if err != nil || state == nil {
+		writeError(w, http.StatusServiceUnavailable, "no active round")
+		return
+	}
+	writeSuccess(w, map[string]any{"roundId": state.ID, "phase": state.Phase})
 }
 
 type placeBetRequest struct {
