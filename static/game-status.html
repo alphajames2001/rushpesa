@@ -41,7 +41,7 @@
             padding-bottom: 16px;
             border-bottom: 1px solid var(--line);
         }
-        .bar-right { display: flex; align-items: center; gap: 16px; }
+        .bar-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; }
         .conn { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--muted); }
         .conn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
         .conn[data-state="live"]::before { background: var(--brand); }
@@ -55,6 +55,7 @@
             border-radius: 8px;
         }
         .back:hover { color: var(--text); border-color: #444; }
+        button.back { font: inherit; font-size: 0.8125rem; background: none; cursor: pointer; }
 
         /* Layout */
         main {
@@ -106,6 +107,9 @@
         h1[data-size="s"] { font-size: clamp(1.25rem, 3.5vw, 2.25rem); }
         h1.is-empty { color: #3d3d3d; }
 
+        [hidden] { display: none !important; }
+        .note.is-bare { display: none; }
+        .controls { display: flex; flex-direction: column; gap: 12px; }
         .note label { font-size: 0.8125rem; color: var(--muted); }
         .field { display: flex; gap: 10px; align-items: stretch; }
         textarea {
@@ -148,6 +152,7 @@
     <header class="bar">
         <div class="bar-right">
             <span class="conn" id="conn" data-state="connecting">Connecting</span>
+            <button type="button" class="back" id="toggleBox" aria-expanded="true" aria-controls="noteControls">Hide text box</button>
             <a class="back" id="backLink" href="/admin/dashboard.html">← Dashboard</a>
         </div>
     </header>
@@ -159,10 +164,12 @@
 
         <section class="note">
             <h1 id="note" class="is-empty" data-size="l">Your text appears here</h1>
-            <label for="noteInput">Text to show</label>
-            <div class="field">
-                <textarea id="noteInput" rows="2" autocomplete="off" placeholder="Type anything"></textarea>
-                <button type="button" id="clearBtn">Clear</button>
+            <div class="controls" id="noteControls">
+                <label for="noteInput">Text to show</label>
+                <div class="field">
+                    <textarea id="noteInput" rows="2" autocomplete="off" placeholder="Type anything"></textarea>
+                    <button type="button" id="clearBtn">Clear</button>
+                </div>
             </div>
         </section>
     </main>
@@ -199,7 +206,7 @@
                 document.getElementById('backLink').textContent = '← Back';
             }
 
-            // On screen: the word "Waiting" between rounds, otherwise the
+            // On screen: "Loading..." between rounds, otherwise the
             // multiplier. It keeps counting while running and stays put,
             // in red, once the round crashes.
             let phase = '';
@@ -210,9 +217,9 @@
             function render() {
                 phaseEl.dataset.phase = phase;
                 if (phase === 'waiting') {
-                    phaseEl.textContent = 'Waiting';
+                    phaseEl.textContent = 'Loading...';
                 } else if (phase === 'running' || phase === 'crashed') {
-                    phaseEl.textContent = multiplier != null ? `${multiplier.toFixed(2)}x` : '—';
+                    phaseEl.textContent = multiplier != null ? multiplier.toFixed(2) : '—';
                 } else {
                     phaseEl.textContent = '—';
                 }
@@ -323,7 +330,29 @@
                 noteEl.textContent = empty ? 'Your text appears here' : text;
                 noteEl.classList.toggle('is-empty', empty);
                 noteEl.dataset.size = text.length > 140 ? 's' : text.length > 60 ? 'm' : 'l';
+                syncNoteVisibility();
             }
+
+            // Hiding the box removes the input controls only; whatever was
+            // typed stays on screen. With the box hidden and nothing typed,
+            // the whole section disappears.
+            const noteSection = document.querySelector('.note');
+            const controls = document.getElementById('noteControls');
+            const toggleBtn = document.getElementById('toggleBox');
+            let boxVisible = true;
+
+            function syncNoteVisibility() {
+                controls.hidden = !boxVisible;
+                toggleBtn.textContent = boxVisible ? 'Hide text box' : 'Show text box';
+                toggleBtn.setAttribute('aria-expanded', String(boxVisible));
+                noteSection.classList.toggle('is-bare', !boxVisible && noteInput.value.trim() === '');
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                boxVisible = !boxVisible;
+                syncNoteVisibility();
+                if (boxVisible) noteInput.focus();
+            });
 
             noteInput.addEventListener('input', renderNote);
             document.getElementById('clearBtn').addEventListener('click', () => {
