@@ -342,14 +342,19 @@ func (g *GameEngine) AdminRoundDebug(w http.ResponseWriter, r *http.Request) {
 // AdminGameStatus is AdminRoundDebug without the crash point: same
 // RequireDebugAccess gate (admin, or influencer with can_debug), but the
 // response only carries what's safe to show on a screen other people can
-// see — the round id and its phase. Used by /admin/game-status.html.
+// see — the round id, its phase, and the current multiplier (which never
+// runs ahead of what the public tick feed already shows, and equals the
+// crash value only once the round has crashed). Used by
+// /admin/game-status.html.
 func (g *GameEngine) AdminGameStatus(w http.ResponseWriter, r *http.Request) {
 	state, err := g.rdb.GetCurrentRound(r.Context())
 	if err != nil || state == nil {
 		writeError(w, http.StatusServiceUnavailable, "no active round")
 		return
 	}
-	writeSuccess(w, map[string]any{"roundId": state.ID, "phase": state.Phase})
+	writeSuccess(w, map[string]any{
+		"roundId": state.ID, "phase": state.Phase, "multiplier": round2(state.Multiplier),
+	})
 }
 
 type placeBetRequest struct {
