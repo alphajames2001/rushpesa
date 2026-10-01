@@ -36,14 +36,11 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 12px 20px;
             padding-bottom: 16px;
             border-bottom: 1px solid var(--line);
         }
-        .brand { font-size: 1.125rem; font-weight: 700; color: #fff; }
-        .brand b { color: var(--brand); font-weight: 700; }
-        .brand span { margin-left: 10px; font-size: 0.875rem; font-weight: 500; color: var(--muted); }
         .bar-right { display: flex; align-items: center; gap: 16px; }
         .conn { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem; color: var(--muted); }
         .conn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
@@ -73,9 +70,10 @@
 
         /* State — the one loud element */
         .phase {
-            font-size: clamp(3rem, 14vw, 10rem);
+            font-size: clamp(3rem, 12vw, 9rem);
             font-weight: 800;
             font-stretch: 125%;
+            font-variant-numeric: tabular-nums;
             line-height: 0.95;
             letter-spacing: -0.02em;
             color: #fff;
@@ -84,12 +82,6 @@
         }
         .phase[data-phase="crashed"] { color: var(--crash); }
         .phase.stale { opacity: 0.35; }
-        .round {
-            margin-top: 14px;
-            font-size: 1rem;
-            color: var(--muted);
-            font-variant-numeric: tabular-nums;
-        }
 
         /* Free text */
         .note {
@@ -154,7 +146,6 @@
 </head>
 <body>
     <header class="bar">
-        <div class="brand"><b>dot</b>Pesa<span>Game status</span></div>
         <div class="bar-right">
             <span class="conn" id="conn" data-state="connecting">Connecting</span>
             <a class="back" id="backLink" href="/admin/dashboard.html">← Dashboard</a>
@@ -163,8 +154,7 @@
 
     <main>
         <section>
-            <p class="phase" id="phase" role="status" aria-live="polite" data-phase="">Connecting</p>
-            <p class="round" id="round">Round —</p>
+            <p class="phase" id="phase" data-phase="">—</p>
         </section>
 
         <section class="note">
@@ -200,7 +190,6 @@
 
         function start() {
             const phaseEl = document.getElementById('phase');
-            const roundEl = document.getElementById('round');
             const connEl = document.getElementById('conn');
             const noteEl = document.getElementById('note');
             const noteInput = document.getElementById('noteInput');
@@ -210,16 +199,29 @@
                 document.getElementById('backLink').textContent = '← Back';
             }
 
-            const LABELS = { waiting: 'Waiting', running: 'Running', crashed: 'Crashed' };
+            // On screen: the word "Waiting" between rounds, otherwise the
+            // multiplier. It keeps counting while running and stays put,
+            // in red, once the round crashes.
+            let phase = '';
+            let multiplier = null;
 
-            function setPhase(raw) {
-                const phase = String(raw || '').toLowerCase();
+            const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+
+            function render() {
                 phaseEl.dataset.phase = phase;
-                phaseEl.textContent = LABELS[phase] || (phase ? phase.charAt(0).toUpperCase() + phase.slice(1) : '—');
+                if (phase === 'waiting') {
+                    phaseEl.textContent = 'Waiting';
+                } else if (phase === 'running' || phase === 'crashed') {
+                    phaseEl.textContent = multiplier != null ? `${multiplier.toFixed(2)}x` : '—';
+                } else {
+                    phaseEl.textContent = '—';
+                }
             }
 
-            function setRound(id) {
-                if (id != null) roundEl.textContent = `Round #${id}`;
+            function setState(nextPhase, nextMultiplier) {
+                phase = nextPhase;
+                multiplier = nextMultiplier;
+                render();
             }
 
             function setConn(state) {
@@ -229,8 +231,7 @@
             }
 
             // Bumped on every websocket state change so a slower sync
-            // response can never overwrite a newer state (e.g. a sync
-            // started at "running" landing after "crashed").
+            // response can never overwrite a newer state.
             let version = 0;
 
             function bounceToLogin() {
@@ -239,9 +240,9 @@
                 window.location.replace('/admin/login.html');
             }
 
-            // Authoritative read through the access-gated endpoint. It only
-            // returns the round id and phase (see AdminGameStatus in
-            // game.go), so the crash point never reaches this page.
+            // Authoritative read through the access-gated endpoint (see
+            // AdminGameStatus in game.go). It returns the phase and the
+            // current multiplier, never the pre-committed crash point.
             async function sync() {
                 const seen = version;
                 try {
@@ -255,8 +256,8 @@
                     if (!res.ok) return;
                     const body = await res.json();
                     if (!body.success || seen !== version) return;
-                    setRound(body.data.roundId ?? body.data.id);
-                    setPhase(body.data.phase);
+                    const next = String(body.data.phase || '').toLowerCase();
+                    setState(next, next === 'waiting' ? null : (num(body.data.multiplier) ?? multiplier));
                 } catch (e) {
                     // The websocket badge already reflects connectivity.
                 }
@@ -279,25 +280,29 @@
                     let msg;
                     try { msg = JSON.parse(event.data); } catch (e) { return; }
                     const data = msg.data || {};
-                    const id = data.id ?? data.roundId;
 
                     switch (msg.event) {
                         case 'round:waiting':
                             version++;
-                            setPhase('waiting');
-                            setRound(id);
-                            sync();
+                            setState('waiting', null);
                             break;
                         case 'round:started':
                             version++;
-                            setPhase('running');
-                            setRound(id);
-                            sync();
+                            setState('running', 1);
                             break;
+                        case 'round:tick': {
+                            const m = num(data.multiplier);
+                            if (m != null) {
+                                version++;
+                                setState('running', m);
+                            }
+                            break;
+                        }
                         case 'round:crashed':
+                            // The crash value is public from this event on,
+                            // so the final number matches what players see.
                             version++;
-                            setPhase('crashed');
-                            setRound(id);
+                            setState('crashed', num(data.crashPoint) ?? multiplier);
                             break;
                     }
                 };
