@@ -1,487 +1,375 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dotPesa Admin — Round Debug</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0d0d0d;
-            color: #e6e6e6;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .top-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 960px;
-            margin: 0 auto 20px;
-        }
-        .top-bar .title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .top-bar h1 {
-            font-size: 18px;
-            font-weight: 700;
-        }
-        .badge {
-            font-size: 11px;
-            background: #2a2a2a;
-            padding: 2px 10px;
-            border-radius: 12px;
-            color: #888;
-        }
-        .badge.live {
-            background: #00e70120;
-            color: #00e701;
-        }
-        .badge.down {
-            background: #ef444420;
-            color: #ef4444;
-        }
-        .top-bar a, .top-bar button {
-            font-size: 13px;
-            color: #888;
-            text-decoration: none;
-            background: none;
-            border: 1px solid #2a2a2a;
-            padding: 8px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        .top-bar a:hover, .top-bar button:hover {
-            color: #e6e6e6;
-            border-color: #444;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            padding: 24px;
-        }
-
-        .card h2 {
-            font-size: 13px;
-            font-weight: 600;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 16px;
-        }
-
-        .predicted-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 16px;
-        }
-
-        .stat label {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 4px;
-        }
-
-        .stat .value {
-            font-family: 'SF Mono', Menlo, monospace;
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .stat .value.crash {
-            color: #00e701;
-        }
-
-        .stat .value.phase-waiting { color: #f59e0b; }
-        .stat .value.phase-running { color: #00e701; }
-        .stat .value.phase-crashed { color: #ef4444; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        th {
-            text-align: left;
-            color: #666;
-            font-weight: 600;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 8px 10px;
-            border-bottom: 1px solid #2a2a2a;
-        }
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #222;
-            font-family: 'SF Mono', Menlo, monospace;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        .pending {
-            color: #666;
-        }
-        .match {
-            color: #00e701;
-        }
-        .mismatch {
-            color: #ef4444;
-            font-weight: 700;
-        }
-        .empty-state {
-            color: #555;
-            font-size: 13px;
-            text-align: center;
-            padding: 24px 0;
-        }
-
-        .toast-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .toast {
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            animation: slideIn 0.3s ease;
-            max-width: 400px;
-        }
-        .toast.error {
-            background: #ef4444;
-            color: #fff;
-        }
-        .toast.success {
-            background: #00e701;
-            color: #0d0d0d;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>dotPesa Admin — Round Debug</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap">
+<style>
+:root{--bg:#f2f0ec;--fg:#17161b;--mut:#7b7780;--pan:#fff;--ln:#d9d5cf;--ok:#12a150;--bad:#e5173f;--warn:#d98a06;--sheet:#d9d9d9;--card:#f4f4f4;--cardbg:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme=dark]{--bg:#0d0d0d;--fg:#e9e8ec;--mut:#8a8690;--pan:#17171c;--ln:#2a2a30;--ok:#00e701;--bad:#ff4766;--warn:#f59e0b;--sheet:#2a2a31;--card:#3a3a43;--cardbg:#1a1a1a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Bricolage Grotesque",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;padding:20px;
+-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:background .3s}
+button,a{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;align-items:center;justify-content:space-between;max-width:960px;margin:0 auto 18px;gap:10px;flex-wrap:wrap}
+.top .t{display:flex;align-items:center;gap:10px}
+.top h1{font-size:18px;font-weight:800}
+.badge{font-size:11px;background:var(--ln);padding:2px 10px;border-radius:12px;color:var(--mut)}
+.badge.live{background:#00e70120;color:var(--ok)}.badge.down{background:#ef444420;color:var(--bad)}
+.acts{display:flex;gap:8px}
+.top a,.top button{font-size:13px;color:var(--mut);text-decoration:none;background:none;border:1px solid var(--ln);padding:8px 14px;border-radius:8px}
+.top a:hover,.top button:hover{color:var(--fg);border-color:var(--mut)}
+@media(pointer:coarse){#lookbtn{display:none}}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--cardbg);border:1px solid var(--ln);border-radius:16px;padding:22px}
+.card h2{font-size:13px;font-weight:600;color:var(--mut);margin-bottom:14px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;padding-bottom:18px;border-bottom:1px solid var(--ln)}
+.meta label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+.meta b{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.meta .pred b{color:var(--ok)}
+.v{font-size:13px;font-weight:700;margin-left:6px}
+.phase-waiting{color:var(--warn)}.phase-running{color:var(--ok)}.phase-crashed{color:var(--bad)}
+#stage{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 0 4px;min-height:340px}
+.hint{display:none;color:var(--mut);font-size:12px;text-align:center;margin-top:10px}
+@media(pointer:coarse){.hint{display:block}}
+.big{font-size:clamp(56px,15vw,110px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.big.sm{font-size:clamp(40px,10vw,64px)}
+.waiting{color:var(--mut)}.crashed{color:var(--bad)}
+.sub{font-weight:600;color:var(--mut);height:22px}
+.gr,.cn{width:min(92vw,440px);height:auto}
+.ring{width:min(60vw,260px);height:auto}.spd{width:min(88vw,380px);height:auto}.rk{height:min(34vh,290px);width:auto}
+.svgn{font-size:38px;font-weight:800;fill:currentColor;font-family:inherit}
+.tk{font-size:11px;fill:var(--mut);font-weight:600}
+.batt{display:flex;align-items:center}
+.shell{width:min(62vw,250px);height:min(30vw,118px);border:6px solid var(--mut);border-radius:28px;padding:5px;overflow:hidden}
+.nub{width:9px;height:34%;background:var(--mut);border-radius:0 6px 6px 0;margin-left:4px}
+#fl{height:100%;width:0;border-radius:18px;background:#30d158;transition:width .15s linear}
+#fl.full{transition:width .5s;box-shadow:0 0 28px #30d158aa}
+#hd{transform-origin:100px 100px}
+#nd{transform-origin:120px 125px;transition:transform .12s linear}
+.stall #nd{transition:transform 1.5s cubic-bezier(.5,0,1,.6)}
+#fm{transform-origin:80px 86px;animation:fl .12s infinite alternate}
+@keyframes fl{to{transform:scaleY(1.35)}}
+#bs{opacity:0}#bs.pop{animation:pop .7s ease-out forwards}
+@keyframes pop{0%{opacity:1;transform:translate(80px,var(--y)) scale(.5)}100%{opacity:0;transform:translate(80px,var(--y)) scale(7)}}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--ln)}
+td{padding:10px;border-bottom:1px solid var(--ln);font-variant-numeric:tabular-nums;font-weight:600}
+tr:last-child td{border-bottom:none}
+.pending{color:var(--mut)}.match{color:var(--ok)}.mismatch{color:var(--bad);font-weight:800}
+.empty{color:var(--mut);font-size:13px;text-align:center;padding:22px 0}
+.toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;max-width:400px;animation:sl .3s ease;transition:opacity .3s}
+.toast.error{background:#ef4444;color:#fff}.toast.success{background:#00e701;color:#0d0d0d}
+@keyframes sl{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.bd{position:fixed;inset:0;background:#0007;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.bd.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--sheet);border-radius:26px 26px 0 0;padding:10px 0 calc(18px + env(safe-area-inset-bottom,0px));
+transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);max-width:640px;margin:0 auto;z-index:51}
+.sheet.open{transform:none}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--mut);opacity:.5;margin:0 auto 14px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:0 20px 14px;gap:12px}
+.row b{font-size:17px}
+.seg{display:flex;background:var(--card);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:7px 14px;border-radius:999px;font-weight:600;font-size:14px;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.cards{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 20px 6px;scrollbar-width:none}
+.cards::-webkit-scrollbar{display:none}
+.lk{flex:0 0 106px;scroll-snap-align:start;background:none;border:0;padding:0;text-align:center;position:relative}
+.pv{display:block;width:106px;height:168px;border-radius:10px;overflow:hidden;outline:3px solid transparent;transition:outline-color .15s}
+.pv svg{display:block;width:100%;height:100%}
+.lk.on .pv{outline-color:#e00}
+.ck{position:absolute;top:-10px;right:-8px;width:24px;height:24px;border-radius:50%;background:#d9d9d9;border:2.5px solid #e00;color:#e00;display:none;align-items:center;justify-content:center;font-size:14px;font-weight:800}
+.lk.on .ck{display:flex}
+.nm{display:block;margin-top:9px;font-size:13px;font-weight:700}
+.hold{position:fixed;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;border:3px solid var(--fg);pointer-events:none;opacity:0;animation:hold 4s linear forwards;animation-delay:.5s;z-index:40}
+@keyframes hold{0%{opacity:.7;transform:scale(1.5)}100%{opacity:.7;transform:scale(.6)}}
+#done{display:block;margin:12px auto 0;border:0;background:var(--fg);color:var(--bg);padding:12px 40px;border-radius:12px;font-weight:700}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
 </head>
 <body>
-    <div class="top-bar">
-        <div class="title">
-            <h1>Round Debug</h1>
-            <span class="badge" id="connBadge">connecting…</span>
-        </div>
-        <div style="display:flex; gap:8px;">
-            <button id="refreshBtn">Refresh now</button>
-            <a href="/admin/dashboard.html">← Dashboard</a>
-        </div>
+<div class="top">
+  <div class="t"><h1>Round Debug</h1><span class="badge" id="connBadge">connecting…</span></div>
+  <div class="acts">
+    <button id="lookbtn">Change look</button>
+    <button id="refreshBtn">Refresh now</button>
+    <a href="/admin/dashboard.html">← Dashboard</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="meta">
+      <div><label>Round #</label><b id="rid">—</b></div>
+      <div><label>Phase</label><b id="phs">—</b></div>
+      <div class="pred"><label>Predicted crash point</label><b id="pred">—</b></div>
+      <div><label>Actual crash point</label><b id="act">—</b><span class="v" id="verdict"></span></div>
     </div>
+    <div id="stage"></div>
+    <div class="hint">Hold anywhere for 4 seconds to change the look</div>
+  </div>
 
-    <div class="container">
-        <div class="card">
-            <h2>Current round (revealed pre-run)</h2>
-            <div class="predicted-grid">
-                <div class="stat">
-                    <label>Round #</label>
-                    <div class="value" id="curRoundId">—</div>
-                </div>
-                <div class="stat">
-                    <label>Phase</label>
-                    <div class="value" id="curPhase">—</div>
-                </div>
-                <div class="stat">
-                    <label>Predicted crash point</label>
-                    <div class="value crash" id="curCrash">—</div>
-                </div>
-                <div class="stat">
-                    <label>Countdown at reveal</label>
-                    <div class="value" id="curCountdown">—</div>
-                </div>
-            </div>
-        </div>
+  <div class="card">
+    <h2>Prediction vs. actual outcome</h2>
+    <table>
+      <thead><tr><th>Round</th><th>Predicted (at waiting)</th><th>Actual (at crash)</th><th>Result</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    <div class="empty" id="emptyState">Waiting for the next round to start…</div>
+  </div>
+</div>
 
-        <div class="card">
-            <h2>Prediction vs. actual outcome</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Round</th>
-                        <th>Predicted (at waiting)</th>
-                        <th>Actual (at crash)</th>
-                        <th>Result</th>
-                    </tr>
-                </thead>
-                <tbody id="logBody"></tbody>
-            </table>
-            <div class="empty-state" id="emptyState">Waiting for the next round to start…</div>
-        </div>
-    </div>
+<div class="toasts" id="toasts"></div>
+<div class="bd" id="bd"></div>
+<section class="sheet" id="sheet" role="dialog" aria-label="Choose a look">
+  <div class="grab"></div>
+  <div class="row"><b>Choose a look</b><div class="seg"><button data-th="light" aria-pressed="false">Light</button><button data-th="dark" aria-pressed="false">Dark</button></div></div>
+  <div class="cards" id="cards"></div>
+  <button id="done">Done</button>
+</section>
 
-    <div class="toast-container" id="toasts"></div>
+<script>
+// ---------- Config & auth (unchanged behaviour) ----------
+const API_URL = window.location.origin;
+const WS_URL = API_URL.replace('http', 'ws') + '/ws';
+const token = sessionStorage.getItem('dotpesa_admin_token') || sessionStorage.getItem('gwave_admin_token');
+const storedUser = JSON.parse(sessionStorage.getItem('dotpesa_admin_user') || sessionStorage.getItem('gwave_admin_user') || 'null');
+// Admins pass; influencers pass too — can_debug is enforced server-side (RequireDebugAccess).
+if (!token || !storedUser || (storedUser.role !== 'admin' && storedUser.role !== 'influencer')) {
+  window.location.href = '/admin/login.html';
+}
+// Matches crashGrowthPerSec in game.go. Only a fallback if round:tick events stop arriving.
+const GROWTH = 0.09;
+const TOL = 0.005, MAX_ROWS = 30;
 
-    <script>
-        const API_URL = window.location.origin;
-        const WS_URL = (API_URL.replace('http', 'ws')) + '/ws';
-        const token = sessionStorage.getItem('dotpesa_admin_token') || sessionStorage.getItem('gwave_admin_token');
-        const storedUser = JSON.parse(sessionStorage.getItem('dotpesa_admin_user') || sessionStorage.getItem('gwave_admin_user') || 'null');
+const E = id => document.getElementById(id);
+const fmt = m => m.toFixed(2);
+const P = (cx,cy,r,a) => [cx+r*Math.sin(a*Math.PI/180), cy-r*Math.cos(a*Math.PI/180)];
 
-        // Auth guard — admins always pass. Influencers pass too: whether
-        // they actually have can_debug is enforced server-side by
-        // RequireDebugAccess on /api/game/admin/round-debug (see
-        // middleware.go), and the fetch below already bounces a
-        // 401/403 response back to login with a toast. Gating on role
-        // alone here used to lock out every influencer, even ones an
-        // admin had explicitly granted can_debug to.
-        if (!token || !storedUser || (storedUser.role !== 'admin' && storedUser.role !== 'influencer')) {
-            window.location.href = '/admin/login.html';
+function toast(message, type = 'error') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`; el.textContent = message;
+  E('toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ---------- State ----------
+const G = { id:null, phase:null, crash:null, countdown:null, cdAt:0, m:1, live:false, actual:null, t0:0, candles:[] };
+const log = new Map(); // roundId -> { predicted, actual, toasted }
+let ws = null, reconnectTimer = null, fetchErr = null;
+
+function setPhase(p) {
+  if (!p || p === G.phase) return;
+  G.phase = p;
+  if (p === 'waiting') { G.m = 1; G.live = false; G.candles = []; G.actual = null; }
+  if (p === 'running') { G.t0 = performance.now(); G.m = 1; G.live = false; G.candles = []; }
+  if (p === 'crashed') {
+    const last = G.candles[G.candles.length-1];
+    G.candles.push({ o: last ? last.c : G.m, c: 1, h: G.m, l: 1, red: true });
+  }
+}
+
+function updateBadge() {
+  const b = E('connBadge');
+  if (fetchErr) { b.textContent = 'reveal failing'; b.className = 'badge down'; }
+  else if (ws && ws.readyState === 1) { b.textContent = 'live'; b.className = 'badge live'; }
+  else if (ws && ws.readyState === 0) { b.textContent = 'connecting…'; b.className = 'badge'; }
+  else { b.textContent = 'disconnected'; b.className = 'badge down'; }
+}
+
+// ---------- Prediction log ----------
+function renderLog() {
+  const rows = [...log.entries()].sort((a,b) => b[0]-a[0]).slice(0, MAX_ROWS);
+  E('emptyState').style.display = rows.length ? 'none' : 'block';
+  E('logBody').innerHTML = rows.map(([id, e]) => {
+    const pr = e.predicted != null ? fmt(e.predicted) : '—';
+    let ac = '<span class="pending">pending…</span>', rs = '<span class="pending">—</span>';
+    if (e.actual != null) {
+      ac = fmt(e.actual);
+      rs = e.predicted == null ? '<span class="pending">⚠ not captured</span>'
+        : Math.abs(e.predicted - e.actual) < TOL ? '<span class="match">✓ match</span>' : '<span class="mismatch">✗ MISMATCH</span>';
+    }
+    return `<tr><td>#${id}</td><td>${pr}</td><td>${ac}</td><td>${rs}</td></tr>`;
+  }).join('');
+}
+
+function recordActual(id, crashPoint) {
+  const e = log.get(id) || { predicted: null, actual: null };
+  e.actual = crashPoint;
+  if (e.predicted != null && Math.abs(e.predicted - crashPoint) >= TOL && !e.toasted) {
+    e.toasted = true;
+    toast(`Round #${id}: predicted ${fmt(e.predicted)} but crashed at ${fmt(crashPoint)}`, 'error');
+  }
+  log.set(id, e);
+  renderLog();
+}
+
+// ---------- Reveal (pre-committed crash point) ----------
+async function revealCurrentRound() {
+  try {
+    const res = await fetch(`${API_URL}/api/game/admin/round-debug`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401 || res.status === 403) {
+      let body = null; try { body = await res.json(); } catch (e) {}
+      toast(`Round debug auth failed (${res.status}): ${body?.error || 'not authorized'}`, 'error');
+      ['dotpesa_admin_token','gwave_admin_token','dotpesa_admin_user','gwave_admin_user'].forEach(k => sessionStorage.removeItem(k));
+      setTimeout(() => { window.location.href = '/admin/login.html'; }, 1500);
+      return;
+    }
+    if (!res.ok) {
+      let body = null; try { body = await res.json(); } catch (e) {}
+      const msg = `Round debug fetch failed: ${res.status} ${body?.error || res.statusText}`;
+      console.error('[round-debug]', msg); toast(msg); fetchErr = msg; updateBadge(); return;
+    }
+    const data = await res.json();
+    if (!data.success) {
+      const msg = `Round debug returned an error: ${data.error || 'unknown'}`;
+      console.error('[round-debug]', msg); toast(msg); fetchErr = msg; updateBadge(); return;
+    }
+    fetchErr = null; updateBadge();
+
+    const d = data.data;
+    const roundId = d.roundId ?? d.id;
+    if (roundId != null && roundId !== G.id) { G.id = roundId; G.actual = null; }
+    G.crash = d.crashPoint ?? null;
+    if (d.countdown != null) { G.countdown = d.countdown; G.cdAt = performance.now(); }
+    setPhase((d.phase || '').toLowerCase());
+
+    if (roundId != null && G.phase !== 'crashed' && G.crash != null && !log.has(roundId)) {
+      log.set(roundId, { predicted: G.crash, actual: null });
+      renderLog();
+    }
+  } catch (err) {
+    const msg = `Round debug network error: ${err.message}`;
+    console.error('[round-debug]', msg); toast(msg); fetchErr = msg; updateBadge();
+  }
+}
+E('refreshBtn').addEventListener('click', revealCurrentRound);
+
+// ---------- WebSocket ----------
+
+function connectWebSocket() {
+  try {
+    ws = new WebSocket(WS_URL); updateBadge();
+    ws.onopen = () => { updateBadge(); console.log('[round-debug] WebSocket connected'); };
+    ws.onmessage = ev => {
+      try {
+        const { event: evt, data } = JSON.parse(ev.data);
+        console.log('[round-debug] WS event:', evt, data);
+        if (evt === 'round:waiting') { G.id = data?.id ?? data?.roundId ?? G.id; setPhase('waiting'); revealCurrentRound(); }
+        else if (evt === 'round:started') { setPhase('running'); revealCurrentRound(); }
+        else if (evt === 'round:crashed') {
+          const id = data?.id ?? data?.roundId, cp = data?.crashPoint;
+          if (id != null && cp != null) { G.id = id; G.m = cp; G.actual = cp; setPhase('crashed'); recordActual(id, cp); }
+        } else if (evt === 'round:tick') {
+          // game.go sends {id, multiplier} every 100ms while the round runs
+          if (G.phase === 'running' && typeof data?.multiplier === 'number' && (G.id == null || data.id === G.id)) { G.m = data.multiplier; G.live = true; }
         }
+      } catch (err) { console.error('[round-debug] WS message parse error:', err); }
+    };
+    ws.onclose = () => { updateBadge(); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectWebSocket, 3000); };
+    ws.onerror = err => { console.error('[round-debug] WebSocket error:', err); ws.close(); };
+  } catch (err) {
+    console.error('[round-debug] WebSocket connection error:', err); updateBadge();
+    clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectWebSocket, 5000);
+  }
+}
+setInterval(() => { if (!ws || ws.readyState !== 1) revealCurrentRound(); }, 5000);
 
-        function toast(message, type = 'error') {
-            const container = document.getElementById('toasts');
-            const el = document.createElement('div');
-            el.className = `toast ${type}`;
-            el.textContent = message;
-            container.appendChild(el);
-            setTimeout(() => {
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 300);
-            }, 3000);
-        }
+// ---------- Looks ----------
+// G.fr = 0 at the start, 1 at the crash point: (current-1)/(predicted-1)
+const ph = (w,r,c) => G.phase === 'waiting' ? w : G.phase === 'running' ? r : c;
+const num = (id, cls) => { const n = E(id); n.textContent = fmt(G.m); n.className = cls + ' ' + G.phase; };
 
-        function setConnBadge(state) {
-            const el = document.getElementById('connBadge');
-            if (state === 'live') {
-                el.textContent = 'live';
-                el.className = 'badge live';
-            } else {
-                el.textContent = 'disconnected';
-                el.className = 'badge down';
-            }
-        }
+const V = [
+{ name:'Classic',
+  html:`<div class="big" id="n">1.00</div><svg viewBox="0 0 300 120" class="gr"><line x1="0" x2="300" y1="12" y2="12" stroke="var(--mut)" stroke-dasharray="3 4"/><polyline id="pl" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="sub" id="s"></div>`,
+  tick(){ num('n','big'); const h=G.hist||[]; const T=Math.max(6,(performance.now()-G.t0)/1000), cr=Math.max(1.01,G.crash||G.m), p=E('pl');
+    p.setAttribute('points',(G.pts||[]).map(([t,m])=>`${(t/T*290+5).toFixed(1)},${(112-(m-1)/(cr-1)*100).toFixed(1)}`).join(' '));
+    p.style.stroke=G.phase==='crashed'?'var(--bad)':'var(--ok)'; E('s').textContent=ph('Waiting for round…','Climbing to the predicted point','Crashed'); },
+  pv:`<rect width="100" height="165" fill="#1b1b22"/><text x="50" y="62" fill="#fff" font-size="26" font-weight="800" text-anchor="middle">2.40</text><polyline points="12,130 35,124 58,108 72,86 88,52" fill="none" stroke="#2fe273" stroke-width="3" stroke-linecap="round"/>` },
+{ name:'iPhone Charge',
+  html:`<div class="batt"><div class="shell"><div id="fl"></div></div><i class="nub"></i></div><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ const c=G.phase==='crashed'; E('fl').style.width=G.fr*100+'%'; E('fl').className=c?'full':''; num('n','big sm'); E('s').textContent=ph('Plug in…','⚡ Charging','Full'); },
+  pv:`<rect width="100" height="165" fill="#000"/><rect x="14" y="62" width="64" height="38" rx="11" fill="none" stroke="#777" stroke-width="3"/><rect x="18" y="66" width="38" height="30" rx="8" fill="#30d158"/><rect x="80" y="74" width="4" height="14" rx="2" fill="#777"/><text x="50" y="132" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">⚡ 2.40</text>` },
+{ name:'Android Charge',
+  html:`<svg viewBox="0 0 200 200" class="ring"><circle cx="100" cy="100" r="84" fill="none" stroke="var(--ln)" stroke-width="12"/><circle id="rg" cx="100" cy="100" r="84" fill="none" stroke="#3ddc84" stroke-width="12" stroke-linecap="round" stroke-dasharray="527.8" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset .15s linear"/><text id="n" x="100" y="112" text-anchor="middle" class="svgn"></text></svg><div class="sub" id="s"></div>`,
+  tick(){ E('rg').style.strokeDashoffset=527.8*(1-G.fr); E('n').textContent=fmt(G.m); E('s').textContent=ph('Connect charger…','Charging rapidly','Fully charged'); },
+  pv:`<rect width="100" height="165" fill="#98ff8a"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="7"/><path d="M50 48A30 30 0 1 1 22 90" fill="none" stroke="#0b5d2a" stroke-width="7" stroke-linecap="round"/><text x="50" y="83" fill="#0b3d1c" font-size="14" font-weight="800" text-anchor="middle">2.40</text><text x="50" y="132" fill="#0b3d1c" font-size="9" font-weight="700" text-anchor="middle">Charging rapidly</text>` },
+{ name:'Analogue Clock',
+  html:`<svg viewBox="0 0 200 200" class="ring"><circle cx="100" cy="100" r="94" fill="var(--pan)" stroke="var(--fg)" stroke-width="4"/>${[...Array(60)].map((_,i)=>{const[a,b]=P(100,100,i%5?86:78,i*6),[c,d]=P(100,100,90,i*6);return`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="var(--fg)" stroke-width="${i%5?1:3}"/>`}).join('')}<line id="hd" x1="100" y1="100" x2="100" y2="26" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="100" r="6" fill="var(--fg)"/></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ E('hd').style.transform=`rotate(${G.fr*360}deg)`; num('n','big sm'); E('s').textContent=ph('Wind up…','Ticking','Time’s up'); },
+  pv:`<rect width="100" height="165" fill="#f4f4f4"/><circle cx="50" cy="78" r="34" fill="#fff" stroke="#222" stroke-width="3"/><line x1="50" y1="78" x2="68" y2="56" stroke="#e5173f" stroke-width="3" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="54" stroke="#222" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="78" r="3" fill="#222"/><text x="50" y="135" fill="#222" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
+{ name:'Speedometer',
+  html:(()=>{const[a0,b0]=P(120,125,95,-120),[a1,b1]=P(120,125,95,120);return`<svg viewBox="0 0 240 170" class="spd" id="sv"><path d="M${a0} ${b0}A95 95 0 1 1 ${a1} ${b1}" fill="none" stroke="var(--ln)" stroke-width="12" stroke-linecap="round"/>${[0,1,2,3,4].map(i=>{const[x,y]=P(120,125,72,-120+i*60);return`<text id="tk${i}" x="${x}" y="${y+4}" text-anchor="middle" class="tk"></text>`}).join('')}<g id="nd"><line x1="120" y1="125" x2="120" y2="50" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/></g><circle cx="120" cy="125" r="8" fill="var(--fg)"/></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`})(),
+  tick(){ const c=G.phase==='crashed'; E('sv').classList.toggle('stall',c); E('nd').style.transform=`rotate(${c?-120:-120+240*G.fr}deg)`;
+    const cr=G.crash||2; for(let i=0;i<5;i++)E('tk'+i).textContent=fmt(1+(cr-1)*i/4);
+    num('n','big sm'); E('s').textContent=ph('Ignition…','Accelerating','Engine stalled'); },
+  pv:`<rect width="100" height="165" fill="#26262d"/><path d="M20 98A34 34 0 1 1 80 98" fill="none" stroke="#555" stroke-width="6" stroke-linecap="round"/><path d="M20 98A34 34 0 0 1 36 52" fill="none" stroke="#ff9f1c" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="88" x2="68" y2="58" stroke="#ff4766" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="88" r="4" fill="#fff"/><text x="50" y="135" fill="#fff" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
+{ name:'Rocket',
+  html:`<svg viewBox="0 0 160 260" class="rk"><g fill="var(--mut)"><circle cx="20" cy="40" r="1.6"/><circle cx="130" cy="30" r="1.6"/><circle cx="140" cy="110" r="1.2"/><circle cx="25" cy="150" r="1.2"/><circle cx="120" cy="190" r="1.6"/><circle cx="40" cy="220" r="1.2"/></g><line x1="10" y1="246" x2="150" y2="246" stroke="var(--ln)" stroke-width="4"/><g id="rc"><path d="M80 14c14 18 16 44 12 70H68c-4-26-2-52 12-70z" fill="var(--fg)"/><circle cx="80" cy="46" r="7" fill="var(--bad)"/><path d="M68 70l-14 22 14-6zM92 70l14 22-14-6z" fill="var(--bad)"/><path id="fm" d="M72 86h16l-8 30z" fill="#f59e0b"/></g><g id="bs"><circle r="10" fill="#f59e0b"/><circle r="5" fill="#fff"/></g></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ const c=G.phase==='crashed', ty=130*(1-G.fr); E('rc').style.opacity=c?0:1; E('rc').setAttribute('transform',`translate(0 ${ty})`); E('fm').style.opacity=G.phase==='running'?1:0;
+    E('bs').style.setProperty('--y',(60+ty)+'px'); E('bs').classList.toggle('pop',c); num('n','big sm'); E('s').textContent=ph('Countdown…','Climbing','Boom'); },
+  pv:`<rect width="100" height="165" fill="#1a2858"/><g fill="#fff"><circle cx="15" cy="25" r="1.2"/><circle cx="82" cy="40" r="1.2"/><circle cx="70" cy="140" r="1"/><circle cx="20" cy="115" r="1"/></g><path d="M50 40c9 12 10 30 8 48H42c-2-18-1-36 8-48z" fill="#fff"/><circle cx="50" cy="62" r="4.5" fill="#e5173f"/><path d="M42 82l-9 14 9-4zM58 82l9 14-9-4z" fill="#e5173f"/><path d="M45 92h10l-5 20z" fill="#f59e0b"/><text x="50" y="140" fill="#fff" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
+{ name:'Candles',
+  html:`<div class="big sm" id="n"></div><svg viewBox="0 0 300 160" class="cn" id="cd"></svg><div class="sub" id="s"></div>`,
+  tick(){ const cr=Math.max(1.01,G.crash||G.m), Y=v=>148-Math.max(0,Math.min(1,(v-1)/(cr-1)))*128, nz=k=>Math.abs(Math.sin(k*12.9898)*43758.5453)%1;
+    let s=`<line x1="0" x2="300" y1="20" y2="20" stroke="var(--mut)" stroke-dasharray="3 4"/><line x1="0" x2="300" y1="148" y2="148" stroke="var(--ln)"/>`;
+    G.candles.slice(-22).forEach((k,i,a)=>{ const x=10+i*13, col=k.red?'var(--bad)':'var(--ok)', w=(cr-1)*.04*nz(i+G.candles.length), hi=k.red?k.h:k.h+w, lo=k.red?k.l:Math.max(1,k.l-w);
+      s+=`<line x1="${x+4}" x2="${x+4}" y1="${Y(hi)}" y2="${Y(lo)}" stroke="${col}" stroke-width="2"/><rect x="${x}" y="${Y(Math.max(k.o,k.c))}" width="8" height="${Math.max(2,Math.abs(Y(k.o)-Y(k.c)))}" rx="1" fill="${col}"/>`; });
+    E('cd').innerHTML=s; num('n','big sm'); E('s').textContent=ph('Waiting for round…','Building candles','Crash candle'); },
+  pv:`<rect width="100" height="165" fill="#14181f"/><g stroke="#2fe273" stroke-width="2"><line x1="22" x2="22" y1="108" y2="126"/><line x1="36" x2="36" y1="96" y2="118"/><line x1="50" x2="50" y1="80" y2="104"/><line x1="64" x2="64" y1="58" y2="88"/></g><g fill="#2fe273"><rect x="18" y="112" width="8" height="10"/><rect x="32" y="102" width="8" height="12"/><rect x="46" y="88" width="8" height="12"/><rect x="60" y="64" width="8" height="18"/></g><line x1="78" x2="78" y1="56" y2="132" stroke="#ff4766" stroke-width="2"/><rect x="74" y="60" width="8" height="68" fill="#ff4766"/><text x="50" y="152" fill="#fff" font-size="13" font-weight="800" text-anchor="middle">2.40</text>` }
+];
 
-        // roundId -> { predicted, actual, revealedAt }
-        const log = new Map();
-        const MAX_ROWS = 30;
+let cur = 0;
+function setLook(i){ cur=i; E('stage').innerHTML=V[i].html; document.querySelectorAll('.lk').forEach((c,j)=>{c.classList.toggle('on',j===i);c.setAttribute('aria-pressed',j===i)}); try{localStorage.setItem('dp_look',i)}catch(e){} }
+E('cards').innerHTML = V.map((v,i)=>`<button class="lk" data-i="${i}"><span class="pv"><svg viewBox="0 0 100 165" preserveAspectRatio="xMidYMid slice">${v.pv}</svg></span><span class="ck">✓</span><span class="nm">${v.name}</span></button>`).join('');
+E('cards').addEventListener('click', e => { const c=e.target.closest('.lk'); if(c) setLook(+c.dataset.i); });
 
-        function renderCurrent(data) {
-            document.getElementById('curRoundId').textContent = data.roundId ?? data.id ?? '—';
-            const phaseEl = document.getElementById('curPhase');
-            const phase = data.phase || '—';
-            phaseEl.textContent = phase;
-            phaseEl.className = 'value phase-' + phase.toLowerCase();
-            document.getElementById('curCrash').textContent =
-                data.crashPoint != null ? `${data.crashPoint.toFixed(2)}x` : '—';
-            document.getElementById('curCountdown').textContent =
-                data.countdown != null ? `${data.countdown}s` : '—';
-        }
+function theme(t){ document.documentElement.dataset.theme=t; document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.th===t)); try{localStorage.setItem('dp_theme',t)}catch(e){} }
+document.querySelector('.seg').addEventListener('click', e => { if(e.target.dataset.th) theme(e.target.dataset.th); });
 
-        function renderLog() {
-            const body = document.getElementById('logBody');
-            const empty = document.getElementById('emptyState');
-            const rows = [...log.entries()]
-                .sort((a, b) => b[0] - a[0])
-                .slice(0, MAX_ROWS);
+const sheet=E('sheet'), bd=E('bd');
+const openS=()=>{sheet.classList.add('open');bd.classList.add('open')}, closeS=()=>{sheet.classList.remove('open');bd.classList.remove('open')};
+E('lookbtn').onclick=openS; E('done').onclick=closeS; bd.onclick=closeS; addEventListener('keydown',e=>e.key==='Escape'&&closeS());
 
-            if (rows.length === 0) {
-                body.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-            empty.style.display = 'none';
+// 4-second long press anywhere that isn't a button or link
+let lp=null, ring=null, sx=0, sy=0;
+const stop=()=>{clearTimeout(lp); if(ring){ring.remove();ring=null}};
+addEventListener('touchstart', e => { if(e.target.closest('button,a,.sheet,.bd')||e.touches.length>1) return; const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
+  ring=document.createElement('div'); ring.className='hold'; ring.style.left=sx+'px'; ring.style.top=sy+'px'; document.body.appendChild(ring);
+  lp=setTimeout(()=>{stop();openS();navigator.vibrate&&navigator.vibrate(20)},4000); },{passive:true});
+addEventListener('touchmove', e => { const t=e.touches[0]; if(Math.hypot(t.clientX-sx,t.clientY-sy)>12) stop(); },{passive:true});
+['touchend','touchcancel'].forEach(n=>addEventListener(n,stop));
+addEventListener('contextmenu', e => { if(e.target.closest('#stage,.hold')) e.preventDefault(); });
 
-            body.innerHTML = rows.map(([roundId, entry]) => {
-                const predicted = entry.predicted != null ? `${entry.predicted.toFixed(2)}x` : '—';
-                let actualCell = '<span class="pending">pending…</span>';
-                let resultCell = '<span class="pending">—</span>';
+// ---------- Frame loop ----------
+function frame(now){
+  const run = G.phase === 'running', t = (now-G.t0)/1000;
+  if (run && !G.live) G.m = Math.min(G.crash || 1e9, Math.exp(GROWTH*t));
+  if (run) {
+    const c=G.candles, k=Math.floor(t/.5), pc=c.length?c[c.length-1].c:1;
+    if (c.length<=k) c.push({o:pc,c:G.m,h:G.m,l:pc}); else { const q=c[c.length-1]; q.c=G.m; q.h=Math.max(q.h,G.m); }
+    (G.pts = G.pts && G.pts.t0 === G.t0 ? G.pts : Object.assign([], {t0:G.t0})).push([t,G.m]);
+  } else if (G.phase === 'waiting') G.pts = null;
+  G.fr = G.phase==='crashed' ? 1 : G.phase==='waiting' || !G.phase ? 0 : (G.crash>1 ? Math.min(1,(G.m-1)/(G.crash-1)) : Math.min(1,Math.log(G.m)/Math.log(8)));
 
-                if (entry.actual != null) {
-                    actualCell = `${entry.actual.toFixed(2)}x`;
-                    if (entry.predicted == null) {
-                        resultCell = '<span class="pending">⚠ not captured</span>';
-                    } else {
-                        const isMatch = Math.abs(entry.predicted - entry.actual) < 0.005;
-                        resultCell = isMatch
-                            ? '<span class="match">✓ match</span>'
-                            : '<span class="mismatch">✗ MISMATCH</span>';
-                        if (!isMatch) {
-                            toast(`Round #${roundId}: predicted ${predicted} but crashed at ${actualCell}`, 'error');
-                        }
-                    }
-                }
+  E('rid').textContent = G.id != null ? '#'+G.id : '—';
+  const p=E('phs'); p.textContent = G.phase ? G.phase + (G.phase==='waiting'&&G.countdown!=null ? ` · ${Math.max(0,Math.ceil(G.countdown-(now-G.cdAt)/1000))}s` : '') : '—'; p.className='phase-'+(G.phase||'');
+  E('pred').textContent = G.crash != null ? fmt(G.crash) : '—';
+  E('act').textContent = G.phase==='crashed' && G.actual != null ? fmt(G.actual) : '—';
+  const v=E('verdict'); if (G.phase==='crashed' && G.actual != null && G.crash != null) { const ok=Math.abs(G.crash-G.actual)<TOL; v.textContent=ok?'✓ match':'✗ MISMATCH'; v.className='v '+(ok?'match':'mismatch'); } else v.textContent='';
+  V[cur].tick();
+  requestAnimationFrame(frame);
+}
 
-                return `<tr>
-                    <td>#${roundId}</td>
-                    <td>${predicted}</td>
-                    <td>${actualCell}</td>
-                    <td>${resultCell}</td>
-                </tr>`;
-            }).join('');
-        }
-
-        // Fetch the pre-committed outcome
-        let lastFetchError = null;
-
-        function setFetchError(msg) {
-            lastFetchError = msg;
-            const badge = document.getElementById('connBadge');
-            if (msg) {
-                badge.textContent = 'reveal failing';
-                badge.className = 'badge down';
-            }
-        }
-
-        async function revealCurrentRound() {
-            try {
-                const res = await fetch(`${API_URL}/api/game/admin/round-debug`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                if (res.status === 401 || res.status === 403) {
-                    let body = null;
-                    try { body = await res.json(); } catch (e) {}
-                    toast(`Round debug auth failed (${res.status}): ${body?.error || 'not authorized'}`, 'error');
-                    sessionStorage.removeItem('dotpesa_admin_token');
-                    sessionStorage.removeItem('gwave_admin_token');
-                    sessionStorage.removeItem('dotpesa_admin_user');
-                    sessionStorage.removeItem('gwave_admin_user');
-                    setTimeout(() => { window.location.href = '/admin/login.html'; }, 1500);
-                    return;
-                }
-
-                if (!res.ok) {
-                    let body = null;
-                    try { body = await res.json(); } catch (e) {}
-                    const msg = `Round debug fetch failed: ${res.status} ${body?.error || res.statusText}`;
-                    console.error('[round-debug]', msg);
-                    toast(msg, 'error');
-                    setFetchError(msg);
-                    return;
-                }
-
-                const data = await res.json();
-                if (!data.success) {
-                    const msg = `Round debug returned an error: ${data.error || 'unknown'}`;
-                    console.error('[round-debug]', msg);
-                    toast(msg, 'error');
-                    setFetchError(msg);
-                    return;
-                }
-
-                setFetchError(null);
-                setConnBadge('live');
-
-                renderCurrent(data.data);
-
-                const { roundId, crashPoint, phase } = data.data;
-                if (roundId != null && phase === 'waiting' && !log.has(roundId)) {
-                    log.set(roundId, { predicted: crashPoint, actual: null });
-                    renderLog();
-                }
-            } catch (err) {
-                const msg = `Round debug network error: ${err.message}`;
-                console.error('[round-debug]', msg);
-                toast(msg, 'error');
-                setFetchError(msg);
-            }
-        }
-
-        document.getElementById('refreshBtn').addEventListener('click', revealCurrentRound);
-
-        // ---- Native WebSocket ----
-        let ws = null;
-        let reconnectTimer = null;
-
-        function connectWebSocket() {
-            try {
-                ws = new WebSocket(WS_URL);
-                setConnBadge('connecting');
-
-                ws.onopen = function() {
-                    setConnBadge('live');
-                    console.log('[round-debug] WebSocket connected');
-                };
-
-                ws.onmessage = function(event) {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        const { event: evt, data } = msg;
-                        console.log('[round-debug] WS event:', evt, data);
-
-                        switch (evt) {
-                            case 'round:waiting':
-                                revealCurrentRound();
-                                break;
-                            case 'round:crashed':
-                                const roundId = data?.id ?? data?.roundId;
-                                const crashPoint = data?.crashPoint;
-                                if (roundId != null) {
-                                    const entry = log.get(roundId) || { predicted: null, actual: null };
-                                    entry.actual = crashPoint;
-                                    log.set(roundId, entry);
-                                    renderLog();
-                                }
-                                break;
-                            case 'round:started':
-                                revealCurrentRound();
-                                break;
-                            default:
-                                // ignore other events
-                                break;
-                        }
-                    } catch (err) {
-                        console.error('[round-debug] WS message parse error:', err);
-                    }
-                };
-
-                ws.onclose = function() {
-                    setConnBadge('down');
-                    console.log('[round-debug] WebSocket closed, reconnecting in 3s...');
-                    clearTimeout(reconnectTimer);
-                    reconnectTimer = setTimeout(connectWebSocket, 3000);
-                };
-
-                ws.onerror = function(err) {
-                    console.error('[round-debug] WebSocket error:', err);
-                    ws.close();
-                };
-            } catch (err) {
-                console.error('[round-debug] WebSocket connection error:', err);
-                setConnBadge('down');
-                clearTimeout(reconnectTimer);
-                reconnectTimer = setTimeout(connectWebSocket, 5000);
-            }
-        }
-
-        // Initial load
-        revealCurrentRound();
-        connectWebSocket();
-
-        // Clean up on page unload
-        window.addEventListener('beforeunload', function() {
-            if (ws) ws.close();
-            clearTimeout(reconnectTimer);
-        });
-    </script>
+// ---------- Boot ----------
+let st=null, sl=0; try{ st=localStorage.getItem('dp_theme'); sl=+localStorage.getItem('dp_look')||0 }catch(e){}
+theme(st || 'dark'); setLook(Math.min(sl, V.length-1));
+renderLog(); revealCurrentRound(); connectWebSocket(); requestAnimationFrame(frame);
+window.addEventListener('beforeunload', () => { if (ws) ws.close(); clearTimeout(reconnectTimer); });
+</script>
 </body>
 </html>
