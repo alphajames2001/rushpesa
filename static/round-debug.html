@@ -48,7 +48,7 @@ button,a{font:inherit;color:inherit;cursor:pointer}
 #fl{height:100%;width:0;border-radius:18px;background:#30d158;transition:width .15s linear}
 #fl.full{transition:width .5s;box-shadow:0 0 28px #30d158aa}
 #hd{transform-origin:100px 100px}
-#nd{transform-origin:120px 125px;transition:transform .12s linear}
+#nd{transform-origin:150px 150px;transition:transform .12s linear}
 .stall #nd{transition:transform 1.5s cubic-bezier(.5,0,1,.6)}
 #fm{transform-origin:80px 86px;animation:fl .12s infinite alternate}
 @keyframes fl{to{transform:scaleY(1.35)}}
@@ -88,39 +88,83 @@ transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);ma
 @keyframes hold{0%{opacity:.7;transform:scale(1.5)}100%{opacity:.7;transform:scale(.6)}}
 #done{display:block;margin:12px auto 0;border:0;background:var(--fg);color:var(--bg);padding:12px 40px;border-radius:12px;font-weight:700}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* ===== full-screen looks ===== */
+body{padding:0;overflow:hidden;--ah:calc(100vh - 250px);--sz:min(94vw,max(200px,calc(var(--ah) - 50px)))}
+@supports(height:100svh){body{--ah:calc(100svh - 250px)}body.log{--ah:calc(56svh - 190px)}}
+body.log{--ah:calc(56vh - 190px)}
+body[data-ph=running]{--glow:#00e70120}body[data-ph=crashed]{--glow:#ff476626}
+.hdr{position:fixed;top:0;left:0;right:0;z-index:20;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 8px;display:flex;flex-direction:column;gap:8px}
+.hdr .top{max-width:none;width:100%;margin:0}
+.top button[aria-pressed=true]{color:var(--fg);border-color:var(--fg)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;border:0;padding:0}
+.meta label{font-size:11px;margin:0}.meta b{font-size:18px}
+#stage{position:fixed;inset:0;min-height:0;padding:130px 16px 24px;gap:2vh;transition:padding .3s;background:radial-gradient(60% 50% at 50% 55%,var(--glow,transparent),transparent 72%)}
+body.log #stage{padding-bottom:calc(44vh + 10px)}
+.hint{position:fixed;bottom:12px;left:0;right:0;pointer-events:none;margin:0;z-index:5}
+.logp{position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;max-width:960px;margin:0 auto;background:var(--cardbg);border:1px solid var(--ln);border-bottom:0;border-radius:20px 20px 0 0;padding:6px 20px calc(12px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:30}
+body.log .logp{transform:none}
+.logp th{position:sticky;top:0;background:var(--cardbg)}
+.big.xl{font-size:clamp(72px,22vw,200px)}
+.trk{width:var(--ew,min(86vw,560px));height:10px;border-radius:5px;background:var(--ln);overflow:hidden}
+.trk i{display:block;height:100%;width:0;background:var(--ok);border-radius:5px;transition:width .15s linear}
+.ends{width:var(--ew,min(86vw,560px));display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--mut)}
+.ends b{color:var(--fg)}
+.shell{position:relative;width:min(78vw,420px);height:min(38vw,200px)}
+.shell::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,#fff3,transparent 48%);pointer-events:none}
+#fl{background:linear-gradient(90deg,#1faa45,#30d158)}
+.ring{width:min(var(--sz),340px)}.spd{width:var(--sz);height:var(--sz)}.rk{height:min(calc(var(--ah) - 60px),560px)}
+/* android: liquid battery (codeshack) */
+.bw{--bh:clamp(200px,calc(var(--ah) - 80px),440px);display:flex;flex-direction:column;align-items:center}
+.bw .mx{font-size:14px;font-weight:700;color:var(--mut);margin-bottom:8px}.bw .mx b{color:var(--fg)}
+.bt{width:calc(var(--bh)*.15);height:calc(var(--bh)*.05);background:#475569;border-radius:6px 6px 0 0}
+.bb{position:relative;width:calc(var(--bh)*.54);height:var(--bh);border:4px solid #475569;border-radius:16px;background:#0f172a;overflow:hidden;box-shadow:0 20px 40px #0006;display:flex;align-items:center;justify-content:center}
+.lq{position:absolute;bottom:0;left:0;width:100%;height:3%;background:#ef4444;box-shadow:0 0 24px #ef4444;transition:height .15s linear,background .6s,box-shadow .6s}
+.lq::before{content:"";position:absolute;top:-10px;left:-50%;width:200%;height:20px;background:#fff3;border-radius:50%;animation:wv 2s infinite linear}
+@keyframes wv{to{transform:translateX(25%)}}
+.ct{position:relative;z-index:2;text-align:center;color:#fff;text-shadow:0 2px 4px #000c;display:flex;flex-direction:column;gap:4px}
+.ct b{font-size:calc(var(--bh)*.17);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}.ct span{font-size:13px;font-weight:800;letter-spacing:.08em}
+/* candles (karlin): bars that slide in */
+.cw{position:relative;width:min(94vw,900px);height:min(calc(var(--ah) - 120px),480px);min-height:150px;border-bottom:1px solid var(--ln);margin-top:26px}
+.mxl{position:absolute;left:0;right:0;top:0;border-top:1px dashed var(--mut)}
+.mxl b{position:absolute;right:0;top:-24px;font-size:13px;color:var(--mut)}.mxl b em{font-style:normal;color:var(--fg)}
+.cs{position:absolute;inset:0}.cd{position:absolute;top:0;height:100%;width:calc(100%/24);transition:left .25s linear}
+.cd i{display:block;position:absolute}
+.cd .wk{left:calc(50% - 1px);width:2px;border-radius:1px;background:currentColor;opacity:.75}
+.cd .bo{left:22%;right:22%;border-radius:3px;overflow:hidden}
+.cd .bo::after{content:"";position:absolute;inset:0;background:currentColor;transform:translateY(100%);animation:rise .5s ease forwards}
+.cd.dn .bo::after{transform:translateY(-100%)}
+@keyframes rise{to{transform:none}}
+@media(prefers-reduced-motion:reduce){.cd .bo::after,.cd.dn .bo::after{transform:none}}
 </style>
 </head>
 <body>
+<header class="hdr">
 <div class="top">
   <div class="t"><h1>Round Debug</h1><span class="badge" id="connBadge">connecting…</span></div>
   <div class="acts">
+    <button id="tblbtn" aria-pressed="false">Prediction table</button>
     <button id="lookbtn">Change look</button>
     <button id="refreshBtn">Refresh now</button>
     <a href="/admin/dashboard.html">← Dashboard</a>
   </div>
 </div>
-
-<div class="wrap">
-  <div class="card">
-    <div class="meta">
-      <div><label>Round #</label><b id="rid">—</b></div>
-      <div><label>Phase</label><b id="phs">—</b></div>
-      <div class="pred"><label>Predicted crash point</label><b id="pred">—</b></div>
-      <div><label>Actual crash point</label><b id="act">—</b><span class="v" id="verdict"></span></div>
-    </div>
-    <div id="stage"></div>
-    <div class="hint">Hold anywhere for 4 seconds to change the look</div>
-  </div>
-
-  <div class="card">
-    <h2>Prediction vs. actual outcome</h2>
-    <table>
-      <thead><tr><th>Round</th><th>Predicted (at waiting)</th><th>Actual (at crash)</th><th>Result</th></tr></thead>
-      <tbody id="logBody"></tbody>
-    </table>
-    <div class="empty" id="emptyState">Waiting for the next round to start…</div>
-  </div>
+<div class="meta">
+  <div><label>Round</label><b id="rid">—</b></div>
+  <div><label>Phase</label><b id="phs">—</b></div>
+  <div class="pred"><label>Predicted</label><b id="pred">—</b></div>
+  <div><label>Actual</label><b id="act">—</b><span class="v" id="verdict"></span></div>
 </div>
+</header>
+<div id="stage"></div>
+<div class="hint">Hold anywhere for 4 seconds to change the look</div>
+<section class="logp" id="logp" aria-label="Prediction vs. actual outcome">
+  <table>
+    <thead><tr><th>Round</th><th>Predicted (at waiting)</th><th>Actual (at crash)</th><th>Result</th></tr></thead>
+    <tbody id="logBody"></tbody>
+  </table>
+  <div class="empty" id="emptyState">Waiting for the next round to start…</div>
+</section>
 
 <div class="toasts" id="toasts"></div>
 <div class="bd" id="bd"></div>
@@ -283,48 +327,54 @@ setInterval(() => { if (!ws || ws.readyState !== 1) revealCurrentRound(); }, 500
 const ph = (w,r,c) => G.phase === 'waiting' ? w : G.phase === 'running' ? r : c;
 const num = (id, cls) => { const n = E(id); n.textContent = fmt(G.m); n.className = cls + ' ' + G.phase; };
 
+const mx=t=>{const e=E('mx');if(e)e.innerHTML=G.crash!=null?`${t} <b>${fmt(G.crash)}</b>`:''};
 const V = [
 { name:'Classic',
-  html:`<div class="big" id="n">1.00</div><svg viewBox="0 0 300 120" class="gr"><line x1="0" x2="300" y1="12" y2="12" stroke="var(--mut)" stroke-dasharray="3 4"/><polyline id="pl" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="sub" id="s"></div>`,
-  tick(){ num('n','big'); const h=G.hist||[]; const T=Math.max(6,(performance.now()-G.t0)/1000), cr=Math.max(1.01,G.crash||G.m), p=E('pl');
-    p.setAttribute('points',(G.pts||[]).map(([t,m])=>`${(t/T*290+5).toFixed(1)},${(112-(m-1)/(cr-1)*100).toFixed(1)}`).join(' '));
-    p.style.stroke=G.phase==='crashed'?'var(--bad)':'var(--ok)'; E('s').textContent=ph('Waiting for round…','Climbing to the predicted point','Crashed'); },
-  pv:`<rect width="100" height="165" fill="#1b1b22"/><text x="50" y="62" fill="#fff" font-size="26" font-weight="800" text-anchor="middle">2.40</text><polyline points="12,130 35,124 58,108 72,86 88,52" fill="none" stroke="#2fe273" stroke-width="3" stroke-linecap="round"/>` },
+  html:`<div class="big xl" id="n"></div><div class="trk"><i id="tf"></i></div><div class="ends"><span>1.00</span><span id="mx"></span></div><div class="sub" id="s"></div>`,
+  tick(){ num('n','big xl'); const t=E('tf'); t.style.width=G.fr*100+'%'; t.style.background=G.phase==='crashed'?'var(--bad)':'var(--ok)'; mx('Max'); E('s').textContent=ph('Waiting for round…','Climbing to the predicted point','Crashed'); },
+  pv:`<rect width="100" height="165" fill="#1b1b22"/><text x="50" y="88" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">2.40</text><rect x="12" y="104" width="76" height="6" rx="3" fill="#2a2a31"/><rect x="12" y="104" width="52" height="6" rx="3" fill="#2fe273"/>` },
 { name:'iPhone Charge',
-  html:`<div class="batt"><div class="shell"><div id="fl"></div></div><i class="nub"></i></div><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
-  tick(){ const c=G.phase==='crashed'; E('fl').style.width=G.fr*100+'%'; E('fl').className=c?'full':''; num('n','big sm'); E('s').textContent=ph('Plug in…','⚡ Charging','Full'); },
+  html:`<div class="batt"><div class="shell"><div id="fl"></div></div><i class="nub"></i></div><div class="ends" style="--ew:min(78vw,420px)"><span>1.00</span><span id="mx"></span></div><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ const c=G.phase==='crashed'; E('fl').style.width=G.fr*100+'%'; E('fl').className=c?'full':''; num('n','big sm'); mx('Full'); E('s').textContent=ph('Plug in…','⚡ Charging','Full'); },
   pv:`<rect width="100" height="165" fill="#000"/><rect x="14" y="62" width="64" height="38" rx="11" fill="none" stroke="#777" stroke-width="3"/><rect x="18" y="66" width="38" height="30" rx="8" fill="#30d158"/><rect x="80" y="74" width="4" height="14" rx="2" fill="#777"/><text x="50" y="132" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">⚡ 2.40</text>` },
 { name:'Android Charge',
-  html:`<svg viewBox="0 0 200 200" class="ring"><circle cx="100" cy="100" r="84" fill="none" stroke="var(--ln)" stroke-width="12"/><circle id="rg" cx="100" cy="100" r="84" fill="none" stroke="#3ddc84" stroke-width="12" stroke-linecap="round" stroke-dasharray="527.8" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset .15s linear"/><text id="n" x="100" y="112" text-anchor="middle" class="svgn"></text></svg><div class="sub" id="s"></div>`,
-  tick(){ E('rg').style.strokeDashoffset=527.8*(1-G.fr); E('n').textContent=fmt(G.m); E('s').textContent=ph('Connect charger…','Charging rapidly','Fully charged'); },
-  pv:`<rect width="100" height="165" fill="#98ff8a"/><circle cx="50" cy="78" r="30" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="7"/><path d="M50 48A30 30 0 1 1 22 90" fill="none" stroke="#0b5d2a" stroke-width="7" stroke-linecap="round"/><text x="50" y="83" fill="#0b3d1c" font-size="14" font-weight="800" text-anchor="middle">2.40</text><text x="50" y="132" fill="#0b3d1c" font-size="9" font-weight="700" text-anchor="middle">Charging rapidly</text>` },
+  html:`<div class="bw"><div class="mx" id="mx"></div><div class="bt"></div><div class="bb"><div class="lq" id="lq"></div><div class="ct"><b id="n"></b><span id="s"></span></div></div></div>`,
+  tick(){ const f=G.fr, q=E('lq'), c=f<.3?'#ef4444':f<.7?'#f59e0b':'#10b981'; q.style.height=(3+97*f)+'%'; q.style.background=c; q.style.boxShadow='0 0 24px '+c; E('n').textContent=fmt(G.m); mx('Full at'); E('s').textContent=ph('PLUG IN','CHARGING','FULL'); },
+  pv:`<rect width="100" height="165" fill="#0f172a"/><rect x="40" y="30" width="20" height="7" rx="3" fill="#475569"/><rect x="24" y="37" width="52" height="100" rx="9" fill="#0f172a" stroke="#475569" stroke-width="3"/><rect x="26.5" y="74" width="47" height="60" rx="6" fill="#10b981"/><text x="50" y="108" fill="#fff" font-size="13" font-weight="800" text-anchor="middle">2.40</text><text x="50" y="22" fill="#94a3b8" font-size="8" font-weight="700" text-anchor="middle">Full at 2.40</text>` },
 { name:'Analogue Clock',
-  html:`<svg viewBox="0 0 200 200" class="ring"><circle cx="100" cy="100" r="94" fill="var(--pan)" stroke="var(--fg)" stroke-width="4"/>${[...Array(60)].map((_,i)=>{const[a,b]=P(100,100,i%5?86:78,i*6),[c,d]=P(100,100,90,i*6);return`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="var(--fg)" stroke-width="${i%5?1:3}"/>`}).join('')}<line id="hd" x1="100" y1="100" x2="100" y2="26" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="100" r="6" fill="var(--fg)"/></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
-  tick(){ E('hd').style.transform=`rotate(${G.fr*360}deg)`; num('n','big sm'); E('s').textContent=ph('Wind up…','Ticking','Time’s up'); },
+  html:`<svg viewBox="0 0 200 200" class="ring"><circle cx="100" cy="100" r="94" fill="var(--pan)" stroke="var(--fg)" stroke-width="4"/><circle id="ca" cx="100" cy="100" r="70" fill="none" stroke="var(--ok)" stroke-opacity=".5" stroke-width="5" stroke-linecap="round" stroke-dasharray="439.8" transform="rotate(-90 100 100)"/>${[...Array(60)].map((_,i)=>{const[a,b]=P(100,100,i%5?86:78,i*6),[c,d]=P(100,100,90,i*6);return`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="var(--fg)" stroke-width="${i%5?1:3}"/>`}).join('')}<text id="mxt" x="100" y="138" text-anchor="middle" class="tk" style="fill:var(--bad)"></text><line id="hd" x1="100" y1="100" x2="100" y2="26" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/><circle cx="100" cy="100" r="6" fill="var(--fg)"/></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ E('hd').style.transform=`rotate(${G.fr*360}deg)`; E('ca').style.strokeDashoffset=439.8*(1-G.fr); E('mxt').textContent=G.crash!=null?'Max '+fmt(G.crash):''; num('n','big sm'); E('s').textContent=ph('Wind up…','Ticking','Time’s up'); },
   pv:`<rect width="100" height="165" fill="#f4f4f4"/><circle cx="50" cy="78" r="34" fill="#fff" stroke="#222" stroke-width="3"/><line x1="50" y1="78" x2="68" y2="56" stroke="#e5173f" stroke-width="3" stroke-linecap="round"/><line x1="50" y1="78" x2="50" y2="54" stroke="#222" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="78" r="3" fill="#222"/><text x="50" y="135" fill="#222" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
 { name:'Speedometer',
-  html:(()=>{const[a0,b0]=P(120,125,95,-120),[a1,b1]=P(120,125,95,120);return`<svg viewBox="0 0 240 170" class="spd" id="sv"><path d="M${a0} ${b0}A95 95 0 1 1 ${a1} ${b1}" fill="none" stroke="var(--ln)" stroke-width="12" stroke-linecap="round"/>${[0,1,2,3,4].map(i=>{const[x,y]=P(120,125,72,-120+i*60);return`<text id="tk${i}" x="${x}" y="${y+4}" text-anchor="middle" class="tk"></text>`}).join('')}<g id="nd"><line x1="120" y1="125" x2="120" y2="50" stroke="var(--bad)" stroke-width="4" stroke-linecap="round"/></g><circle cx="120" cy="125" r="8" fill="var(--fg)"/></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`})(),
-  tick(){ const c=G.phase==='crashed'; E('sv').classList.toggle('stall',c); E('nd').style.transform=`rotate(${c?-120:-120+240*G.fr}deg)`;
-    const cr=G.crash||2; for(let i=0;i<5;i++)E('tk'+i).textContent=fmt(1+(cr-1)*i/4);
-    num('n','big sm'); E('s').textContent=ph('Ignition…','Accelerating','Engine stalled'); },
-  pv:`<rect width="100" height="165" fill="#26262d"/><path d="M20 98A34 34 0 1 1 80 98" fill="none" stroke="#555" stroke-width="6" stroke-linecap="round"/><path d="M20 98A34 34 0 0 1 36 52" fill="none" stroke="#ff9f1c" stroke-width="6" stroke-linecap="round"/><line x1="50" y1="88" x2="68" y2="58" stroke="#ff4766" stroke-width="3" stroke-linecap="round"/><circle cx="50" cy="88" r="4" fill="#fff"/><text x="50" y="135" fill="#fff" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
+  html:(()=>{let t='';for(let i=0;i<=16;i++){const a=-130+260*i/16,M=i%2===0,[x1,y1]=P(150,150,M?110:117,a),[x2,y2]=P(150,150,127,a);t+=`<line id="t${i}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${i>=12?'#ff2d4d':'#f2f2f2'}" stroke-width="${M?4.5:3}" stroke-linecap="butt"/>`}
+    for(let j=0;j<=8;j++){const[x,y]=P(150,150,90,-130+260*j/8);t+=`<text id="tk${j}" x="${x}" y="${y+4.5}" text-anchor="middle" font-size="${j===8?14:12}" font-weight="800" fill="${j>=6?'#ff2d4d':'#f2f2f2'}"></text>`}
+    return`<svg viewBox="0 0 300 300" class="spd" id="sv"><defs><radialGradient id="bz" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#34343a"/><stop offset="1" stop-color="#050506"/></radialGradient><radialGradient id="fc" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#1d1d20"/><stop offset="1" stop-color="#090909"/></radialGradient><radialGradient id="hb" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#1c1c1f"/><stop offset="1" stop-color="#0a0a0b"/></radialGradient></defs><circle cx="150" cy="150" r="147" fill="url(#bz)"/><circle cx="150" cy="150" r="136" fill="url(#fc)" stroke="#000" stroke-width="2"/>${t}<g id="nd"><line x1="150" y1="150" x2="150" y2="38" stroke="#4fb0e6" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="150" cy="150" r="44" fill="url(#hb)" stroke="#2a2a2e" stroke-width="3"/><text id="n" x="150" y="161" text-anchor="middle" font-size="31" font-weight="800" fill="#fff" style="font-family:inherit;font-variant-numeric:tabular-nums"></text></svg><div class="sub" id="s"></div>`})(),
+  tick(){ const c=G.phase==='crashed', cr=G.crash||2; E('sv').classList.toggle('stall',c); E('nd').style.transform=`rotate(${c?-130:-130+260*G.fr}deg)`;
+    if(this.k!==cr){this.k=cr;for(let j=0;j<=8;j++)E('tk'+j).textContent=fmt(1+(cr-1)*j/8)}
+    for(let i=0;i<=16;i++)E('t'+i).style.opacity=i/16<=G.fr+1e-6?1:.3;
+    const n=E('n'); n.textContent=fmt(G.m); n.setAttribute('fill',c?'#ff2d4d':G.phase==='waiting'?'#8a8690':'#fff'); E('s').textContent=ph('Ignition…','Accelerating','Engine stalled'); },
+  pv:`<rect width="100" height="165" fill="#1a1a1e"/><circle cx="50" cy="78" r="40" fill="#0b0b0c" stroke="#3a3a40" stroke-width="3"/><path d="M27 102A34 34 0 1 1 73 102" fill="none" stroke="#eee" stroke-width="3" stroke-dasharray="1.5 4.2"/><path d="M70 40A34 34 0 0 1 76 54" fill="none" stroke="#ff2d4d" stroke-width="3"/><line x1="50" y1="78" x2="72" y2="50" stroke="#4fb0e6" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="78" r="13" fill="#161618" stroke="#2a2a2e" stroke-width="2"/><text x="50" y="82" fill="#fff" font-size="9" font-weight="800" text-anchor="middle">2.40</text><text x="50" y="140" fill="#fff" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
 { name:'Rocket',
-  html:`<svg viewBox="0 0 160 260" class="rk"><g fill="var(--mut)"><circle cx="20" cy="40" r="1.6"/><circle cx="130" cy="30" r="1.6"/><circle cx="140" cy="110" r="1.2"/><circle cx="25" cy="150" r="1.2"/><circle cx="120" cy="190" r="1.6"/><circle cx="40" cy="220" r="1.2"/></g><line x1="10" y1="246" x2="150" y2="246" stroke="var(--ln)" stroke-width="4"/><g id="rc"><path d="M80 14c14 18 16 44 12 70H68c-4-26-2-52 12-70z" fill="var(--fg)"/><circle cx="80" cy="46" r="7" fill="var(--bad)"/><path d="M68 70l-14 22 14-6zM92 70l14 22-14-6z" fill="var(--bad)"/><path id="fm" d="M72 86h16l-8 30z" fill="#f59e0b"/></g><g id="bs"><circle r="10" fill="#f59e0b"/><circle r="5" fill="#fff"/></g></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
-  tick(){ const c=G.phase==='crashed', ty=130*(1-G.fr); E('rc').style.opacity=c?0:1; E('rc').setAttribute('transform',`translate(0 ${ty})`); E('fm').style.opacity=G.phase==='running'?1:0;
+  html:`<svg viewBox="0 -18 160 278" class="rk"><g fill="var(--mut)"><circle cx="20" cy="40" r="1.6"/><circle cx="130" cy="30" r="1.6"/><circle cx="140" cy="110" r="1.2"/><circle cx="25" cy="150" r="1.2"/><circle cx="120" cy="190" r="1.6"/><circle cx="40" cy="220" r="1.2"/></g><line x1="4" y1="8" x2="156" y2="8" stroke="var(--bad)" stroke-width="1.2" stroke-dasharray="4 4"/><text id="mxt" x="156" y="1" text-anchor="end" class="tk"></text><line x1="10" y1="246" x2="150" y2="246" stroke="var(--ln)" stroke-width="4"/><g id="rc"><path d="M80 14c14 18 16 44 12 70H68c-4-26-2-52 12-70z" fill="var(--fg)"/><circle cx="80" cy="46" r="7" fill="var(--bad)"/><path d="M68 70l-14 22 14-6zM92 70l14 22-14-6z" fill="var(--bad)"/><path id="fm" d="M72 86h16l-8 30z" fill="#f59e0b"/></g><g id="bs"><circle r="10" fill="#f59e0b"/><circle r="5" fill="#fff"/></g></svg><div class="big sm" id="n"></div><div class="sub" id="s"></div>`,
+  tick(){ const c=G.phase==='crashed', ty=130*(1-G.fr); E('rc').style.opacity=c?0:1; E('rc').setAttribute('transform',`translate(0 ${ty})`); E('fm').style.opacity=G.phase==='running'?1:0; E('mxt').textContent=G.crash!=null?'Max '+fmt(G.crash):'';
     E('bs').style.setProperty('--y',(60+ty)+'px'); E('bs').classList.toggle('pop',c); num('n','big sm'); E('s').textContent=ph('Countdown…','Climbing','Boom'); },
   pv:`<rect width="100" height="165" fill="#1a2858"/><g fill="#fff"><circle cx="15" cy="25" r="1.2"/><circle cx="82" cy="40" r="1.2"/><circle cx="70" cy="140" r="1"/><circle cx="20" cy="115" r="1"/></g><path d="M50 40c9 12 10 30 8 48H42c-2-18-1-36 8-48z" fill="#fff"/><circle cx="50" cy="62" r="4.5" fill="#e5173f"/><path d="M42 82l-9 14 9-4zM58 82l9 14-9-4z" fill="#e5173f"/><path d="M45 92h10l-5 20z" fill="#f59e0b"/><text x="50" y="140" fill="#fff" font-size="15" font-weight="800" text-anchor="middle">2.40</text>` },
 { name:'Candles',
-  html:`<div class="big sm" id="n"></div><svg viewBox="0 0 300 160" class="cn" id="cd"></svg><div class="sub" id="s"></div>`,
-  tick(){ const cr=Math.max(1.01,G.crash||G.m), Y=v=>148-Math.max(0,Math.min(1,(v-1)/(cr-1)))*128, nz=k=>Math.abs(Math.sin(k*12.9898)*43758.5453)%1;
-    let s=`<line x1="0" x2="300" y1="20" y2="20" stroke="var(--mut)" stroke-dasharray="3 4"/><line x1="0" x2="300" y1="148" y2="148" stroke="var(--ln)"/>`;
-    G.candles.slice(-22).forEach((k,i,a)=>{ const x=10+i*13, col=k.red?'var(--bad)':'var(--ok)', w=(cr-1)*.04*nz(i+G.candles.length), hi=k.red?k.h:k.h+w, lo=k.red?k.l:Math.max(1,k.l-w);
-      s+=`<line x1="${x+4}" x2="${x+4}" y1="${Y(hi)}" y2="${Y(lo)}" stroke="${col}" stroke-width="2"/><rect x="${x}" y="${Y(Math.max(k.o,k.c))}" width="8" height="${Math.max(2,Math.abs(Y(k.o)-Y(k.c)))}" rx="1" fill="${col}"/>`; });
-    E('cd').innerHTML=s; num('n','big sm'); E('s').textContent=ph('Waiting for round…','Building candles','Crash candle'); },
+  html:`<div class="big sm" id="n"></div><div class="cw"><div class="mxl"><b id="mx"></b></div><div class="cs" id="cs"></div></div><div class="sub" id="s"></div>`,
+  tick(){ const cr=Math.max(1.01,G.crash||G.m), Y=v=>Math.max(0,Math.min(100,(v-1)/(cr-1)*100)), nz=k=>Math.abs(Math.sin(k*12.9898)*43758.5453)%1, cs=E('cs'), el=cs._e=cs._e||[];
+    if(el.length>G.candles.length){cs.innerHTML='';el.length=0}
+    const off=Math.max(0,G.candles.length-24);
+    G.candles.forEach((k,i)=>{ if(i<off){if(el[i]){el[i].remove();el[i]=null}return}
+      let d=el[i]; if(!d){d=el[i]=document.createElement('div');d.className='cd'+(k.red?' dn':'');d.innerHTML='<i class="wk"></i><i class="bo"></i>';cs.appendChild(d)}
+      const w=(cr-1)*.04*nz(i), hi=k.red?k.h:k.h+w, lo=k.red?k.l:Math.max(1,k.l-w), a=Math.min(k.o,k.c), b=Math.max(k.o,k.c), wk=d.firstChild, bo=d.lastChild;
+      d.style.left=(i-off)*100/24+'%'; d.style.color=k.red?'var(--bad)':'var(--ok)';
+      wk.style.bottom=Y(lo)+'%'; wk.style.height=(Y(hi)-Y(lo))+'%'; bo.style.bottom=Y(a)+'%'; bo.style.height=Math.max(1.6,Y(b)-Y(a))+'%'; });
+    mx('Max'); num('n','big sm'); E('s').textContent=ph('Waiting for round…','Building candles','Crash candle'); },
   pv:`<rect width="100" height="165" fill="#14181f"/><g stroke="#2fe273" stroke-width="2"><line x1="22" x2="22" y1="108" y2="126"/><line x1="36" x2="36" y1="96" y2="118"/><line x1="50" x2="50" y1="80" y2="104"/><line x1="64" x2="64" y1="58" y2="88"/></g><g fill="#2fe273"><rect x="18" y="112" width="8" height="10"/><rect x="32" y="102" width="8" height="12"/><rect x="46" y="88" width="8" height="12"/><rect x="60" y="64" width="8" height="18"/></g><line x1="78" x2="78" y1="56" y2="132" stroke="#ff4766" stroke-width="2"/><rect x="74" y="60" width="8" height="68" fill="#ff4766"/><text x="50" y="152" fill="#fff" font-size="13" font-weight="800" text-anchor="middle">2.40</text>` }
 ];
 
 let cur = 0;
-function setLook(i){ cur=i; E('stage').innerHTML=V[i].html; document.querySelectorAll('.lk').forEach((c,j)=>{c.classList.toggle('on',j===i);c.setAttribute('aria-pressed',j===i)}); try{localStorage.setItem('dp_look',i)}catch(e){} }
+function setLook(i){ cur=i; V[i].k=null; E('stage').innerHTML=V[i].html; document.querySelectorAll('.lk').forEach((c,j)=>{c.classList.toggle('on',j===i);c.setAttribute('aria-pressed',j===i)}); try{localStorage.setItem('dp_look',i)}catch(e){} }
 E('cards').innerHTML = V.map((v,i)=>`<button class="lk" data-i="${i}"><span class="pv"><svg viewBox="0 0 100 165" preserveAspectRatio="xMidYMid slice">${v.pv}</svg></span><span class="ck">✓</span><span class="nm">${v.name}</span></button>`).join('');
 E('cards').addEventListener('click', e => { const c=e.target.closest('.lk'); if(c) setLook(+c.dataset.i); });
 
@@ -338,7 +388,7 @@ E('lookbtn').onclick=openS; E('done').onclick=closeS; bd.onclick=closeS; addEven
 // 4-second long press anywhere that isn't a button or link
 let lp=null, ring=null, sx=0, sy=0;
 const stop=()=>{clearTimeout(lp); if(ring){ring.remove();ring=null}};
-addEventListener('touchstart', e => { if(e.target.closest('button,a,.sheet,.bd')||e.touches.length>1) return; const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
+addEventListener('touchstart', e => { if(e.target.closest('button,a,.sheet,.bd,.logp')||e.touches.length>1) return; const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
   ring=document.createElement('div'); ring.className='hold'; ring.style.left=sx+'px'; ring.style.top=sy+'px'; document.body.appendChild(ring);
   lp=setTimeout(()=>{stop();openS();navigator.vibrate&&navigator.vibrate(20)},4000); },{passive:true});
 addEventListener('touchmove', e => { const t=e.touches[0]; if(Math.hypot(t.clientX-sx,t.clientY-sy)>12) stop(); },{passive:true});
@@ -352,8 +402,7 @@ function frame(now){
   if (run) {
     const c=G.candles, k=Math.floor(t/.5), pc=c.length?c[c.length-1].c:1;
     if (c.length<=k) c.push({o:pc,c:G.m,h:G.m,l:pc}); else { const q=c[c.length-1]; q.c=G.m; q.h=Math.max(q.h,G.m); }
-    (G.pts = G.pts && G.pts.t0 === G.t0 ? G.pts : Object.assign([], {t0:G.t0})).push([t,G.m]);
-  } else if (G.phase === 'waiting') G.pts = null;
+  }
   G.fr = G.phase==='crashed' ? 1 : G.phase==='waiting' || !G.phase ? 0 : (G.crash>1 ? Math.min(1,(G.m-1)/(G.crash-1)) : Math.min(1,Math.log(G.m)/Math.log(8)));
 
   E('rid').textContent = G.id != null ? '#'+G.id : '—';
@@ -361,13 +410,17 @@ function frame(now){
   E('pred').textContent = G.crash != null ? fmt(G.crash) : '—';
   E('act').textContent = G.phase==='crashed' && G.actual != null ? fmt(G.actual) : '—';
   const v=E('verdict'); if (G.phase==='crashed' && G.actual != null && G.crash != null) { const ok=Math.abs(G.crash-G.actual)<TOL; v.textContent=ok?'✓ match':'✗ MISMATCH'; v.className='v '+(ok?'match':'mismatch'); } else v.textContent='';
-  V[cur].tick();
+  document.body.dataset.ph=G.phase||''; V[cur].tick();
   requestAnimationFrame(frame);
 }
 
 // ---------- Boot ----------
 let st=null, sl=0; try{ st=localStorage.getItem('dp_theme'); sl=+localStorage.getItem('dp_look')||0 }catch(e){}
-theme(st || 'dark'); setLook(Math.min(sl, V.length-1));
+theme(st || 'dark');
+function tbl(on){ document.body.classList.toggle('log',on); E('tblbtn').setAttribute('aria-pressed',on); try{localStorage.setItem('dp_tbl',on?1:0)}catch(e){} }
+E('tblbtn').onclick=()=>tbl(!document.body.classList.contains('log'));
+try{ tbl(localStorage.getItem('dp_tbl')==='1') }catch(e){}
+ setLook(Math.min(sl, V.length-1));
 renderLog(); revealCurrentRound(); connectWebSocket(); requestAnimationFrame(frame);
 window.addEventListener('beforeunload', () => { if (ws) ws.close(); clearTimeout(reconnectTimer); });
 </script>
