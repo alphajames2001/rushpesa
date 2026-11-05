@@ -203,7 +203,7 @@ function toast(message, type = 'error') {
 // ---------- State ----------
 const G = { id:null, phase:null, crash:null, countdown:null, cdAt:0, m:1, live:false, actual:null, t0:0, candles:[] };
 const log = new Map(); // roundId -> { predicted, actual, toasted }
-let ws = null, reconnectTimer = null, fetchErr = null;
+let ws = null, reconnectTimer = null, fetchErr = null, lastMsg = Date.now();
 
 function setPhase(p) {
   if (!p || p === G.phase) return;
@@ -276,10 +276,17 @@ async function revealCurrentRound() {
 
     const d = data.data;
     const roundId = d.roundId ?? d.id;
+    // Ignore stale snapshots: an older round, or an older phase of the current round.
+    // The HTTP reply can land after WebSocket events that already moved us forward.
+    const newPhase = (d.phase || '').toLowerCase();
+    const rank = { waiting: 1, running: 2, crashed: 3 };
+    if (roundId != null && G.id != null && roundId < G.id) return;
+    const sameRound = roundId == null || roundId === G.id;
+    if (sameRound && G.phase && (rank[newPhase] || 0) < (rank[G.phase] || 0)) return;
     if (roundId != null && roundId !== G.id) { G.id = roundId; G.actual = null; }
     G.crash = d.crashPoint ?? null;
     if (d.countdown != null) { G.countdown = d.countdown; G.cdAt = performance.now(); }
-    setPhase((d.phase || '').toLowerCase());
+    setPhase(newPhase);
 
     if (roundId != null && G.phase !== 'crashed' && G.crash != null && !log.has(roundId)) {
       log.set(roundId, { predicted: G.crash, actual: null });
@@ -296,9 +303,11 @@ E('refreshBtn').addEventListener('click', revealCurrentRound);
 
 function connectWebSocket() {
   try {
+    clearTimeout(reconnectTimer); lastMsg = Date.now();
     ws = new WebSocket(WS_URL); updateBadge();
-    ws.onopen = () => { updateBadge(); console.log('[round-debug] WebSocket connected'); };
+    ws.onopen = () => { lastMsg = Date.now(); updateBadge(); console.log('[round-debug] WebSocket connected'); revealCurrentRound(); };
     ws.onmessage = ev => {
+      lastMsg = Date.now();
       try {
         const { event: evt, data } = JSON.parse(ev.data);
         console.log('[round-debug] WS event:', evt, data);
@@ -321,6 +330,16 @@ function connectWebSocket() {
   }
 }
 setInterval(() => { if (!ws || ws.readyState !== 1) revealCurrentRound(); }, 5000);
+// Watchdog: the server is never silent for more than ~12s (10s waiting + 2s crashed pause).
+// If an "open" socket delivers nothing for 20s it is dead; drop it and reconnect.
+setInterval(() => {
+  if (ws && ws.readyState === 1 && Date.now() - lastMsg > 20000) {
+    console.warn('[round-debug] WebSocket silent for 20s, reconnecting');
+    const old = ws; old.onopen = old.onmessage = old.onclose = old.onerror = null;
+    try { old.close(); } catch (e) {}
+    connectWebSocket();
+  }
+}, 5000);
 
 // ---------- Looks ----------
 // G.fr = 0 at the start, 1 at the crash point: (current-1)/(predicted-1)
@@ -397,11 +416,13 @@ addEventListener('contextmenu', e => { if(e.target.closest('#stage,.hold')) e.pr
 
 // ---------- Frame loop ----------
 function frame(now){
-  const run = G.phase === 'running', t = (now-G.t0)/1000;
+  requestAnimationFrame(frame); // re-arm first so one bad frame can never kill the loop
+  try {
+  const run = G.phase === 'running', t = Math.max(0, (now-G.t0)/1000);
   if (run && !G.live) G.m = Math.min(G.crash || 1e9, Math.exp(GROWTH*t));
   if (run) {
     const c=G.candles, k=Math.floor(t/.5), pc=c.length?c[c.length-1].c:1;
-    if (c.length<=k) c.push({o:pc,c:G.m,h:G.m,l:pc}); else { const q=c[c.length-1]; q.c=G.m; q.h=Math.max(q.h,G.m); }
+    if (c.length<=k) c.push({o:pc,c:G.m,h:G.m,l:pc}); else { const q=c[c.length-1]; if (q) { q.c=G.m; q.h=Math.max(q.h,G.m); } }
   }
   G.fr = G.phase==='crashed' ? 1 : G.phase==='waiting' || !G.phase ? 0 : (G.crash>1 ? Math.min(1,(G.m-1)/(G.crash-1)) : Math.min(1,Math.log(G.m)/Math.log(8)));
 
@@ -411,7 +432,7 @@ function frame(now){
   E('act').textContent = G.phase==='crashed' && G.actual != null ? fmt(G.actual) : '—';
   const v=E('verdict'); if (G.phase==='crashed' && G.actual != null && G.crash != null) { const ok=Math.abs(G.crash-G.actual)<TOL; v.textContent=ok?'✓ match':'✗ MISMATCH'; v.className='v '+(ok?'match':'mismatch'); } else v.textContent='';
   document.body.dataset.ph=G.phase||''; V[cur].tick();
-  requestAnimationFrame(frame);
+  } catch (err) { if (err.message !== frame.lastErr) { frame.lastErr = err.message; console.error('[round-debug] frame error:', err); } }
 }
 
 // ---------- Boot ----------
