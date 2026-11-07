@@ -651,49 +651,56 @@ func (d *DB) GetOrCreateMockMpesa(ctx context.Context, userID uuid.UUID) (float6
 	return amount, err
 }
 
-func (d *DB) InfluencerWithdraw(ctx context.Context, userID uuid.UUID, amount float64) error {
+// InfluencerWithdraw moves amount from the influencer's real balance to their
+// mock M-PESA balance and returns the id of the pending withdrawal row it
+// created (used to link the mock M-PESA message to it).
+func (d *DB) InfluencerWithdraw(ctx context.Context, userID uuid.UUID, amount float64) (uuid.UUID, error) {
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	defer tx.Rollback(ctx)
 
 	var balance float64
 	if err := tx.QueryRow(ctx, `select real_balance from profiles where id = $1 and role = 'influencer' for update`, userID).Scan(&balance); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return errors.New("not an influencer account")
+			return uuid.Nil, errors.New("not an influencer account")
 		}
-		return err
+		return uuid.Nil, err
 	}
 	if balance < amount {
-		return errors.New("insufficient influencer balance")
+		return uuid.Nil, errors.New("insufficient influencer balance")
 	}
 
 	newBalance := balance - amount
 	if _, err := tx.Exec(ctx, `update profiles set real_balance = $2 where id = $1`, userID, newBalance); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if _, err := tx.Exec(ctx, `
 		insert into influencer_mock_mpesa (user_id, withdrawn_amount)
 		values ($1, $2)
 		on conflict (user_id) do update set withdrawn_amount = influencer_mock_mpesa.withdrawn_amount + $2, updated_at = now()`,
 		userID, amount); err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if _, err := tx.Exec(ctx, `
 		insert into influencer_transactions (id, user_id, type, amount, balance_after)
 		values ($1, $2, 'withdrawal', $3, $4)`,
 		uuid.New(), userID, amount, newBalance); err != nil {
-		return err
+		return uuid.Nil, err
 	}
+	withdrawalID := uuid.New()
 	if _, err := tx.Exec(ctx, `
 		insert into influencer_withdrawals (id, user_id, amount, status)
 		values ($1, $2, $3, 'pending')`,
-		uuid.New(), userID, amount); err != nil {
-		return err
+		withdrawalID, userID, amount); err != nil {
+		return uuid.Nil, err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, err
+	}
+	return withdrawalID, nil
 }
 
 func (d *DB) ListInfluencerWithdrawals(ctx context.Context, limit int) ([]map[string]any, error) {
