@@ -30,7 +30,8 @@ func (a *App) InfluencerWithdraw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.db.InfluencerWithdraw(r.Context(), userID, req.Amount); err != nil {
+	withdrawalID, err := a.db.InfluencerWithdraw(r.Context(), userID, req.Amount)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -42,6 +43,11 @@ func (a *App) InfluencerWithdraw(w http.ResponseWriter, r *http.Request) {
 	if err := a.rdb.IncrRealBalance(r.Context(), userID, -req.Amount); err != nil {
 		log.Printf("influencer: failed to sync redis balance after withdrawal for %s: %v", userID, err)
 	}
+	// Mock M-PESA: the "You have received Ksh..." message is created right
+	// away (and pushed to the phone), not when an admin later marks the
+	// withdrawal sent. It is linked to this withdrawal, so a later mark-sent
+	// won't create a second one.
+	a.notifyWithdrawalSent(r.Context(), withdrawalID)
 	// Return "newBalance" to match frontend expectation
 	balance, _ := a.db.GetOrCreateMockMpesa(r.Context(), userID)
 	writeSuccess(w, map[string]any{"withdrawn": req.Amount, "newBalance": balance})
