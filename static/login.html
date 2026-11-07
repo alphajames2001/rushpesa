@@ -244,6 +244,13 @@
             }, 3000);
         }
 
+        // Where to go after login: ?next=/admin/some-page.html (same-site admin pages only,
+        // so this can't be abused as an open redirect). Falls back to the role dashboard.
+        function getNext() {
+            const n = new URLSearchParams(window.location.search).get('next');
+            return n && /^\/admin\/[A-Za-z0-9_.-]+\.html$/.test(n) ? n : null;
+        }
+
         document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
         async function handleLogin(e) {
@@ -281,7 +288,7 @@
                     sessionStorage.setItem('dotpesa_admin_user', JSON.stringify(data.data.user));
 
                     const role = data.data.user.role;
-                    const destination = role === 'influencer' ? '/admin/influencer.html' : '/admin/dashboard.html';
+                    const destination = getNext() || (role === 'influencer' ? '/admin/influencer.html' : '/admin/dashboard.html');
 
                     toast(role === 'influencer' ? 'Welcome influencer!' : 'Welcome admin!', 'success');
                     msg.innerHTML = '<div class="success">Login successful! Redirecting...</div>';
@@ -307,7 +314,7 @@
         if (token && storedUser) {
             const isInfluencer = storedUser.role === 'influencer';
             const checkUrl = isInfluencer ? '/api/influencer/balance' : '/api/admin/stats';
-            const destination = isInfluencer ? '/admin/influencer.html' : '/admin/dashboard.html';
+            const destination = getNext() || (isInfluencer ? '/admin/influencer.html' : '/admin/dashboard.html');
 
             fetch(`${API_URL}${checkUrl}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
