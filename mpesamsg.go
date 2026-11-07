@@ -18,7 +18,12 @@ import (
 // the real SMS format, stored (so reloads show identical text), shown by
 // mpesa-messages.html and pushed to the user's registered devices over FCM.
 
+// defaultMpesaSender is who the money is "from" inside the SMS text.
 const defaultMpesaSender = "PALPLUS FUTURE"
+
+// mpesaNotificationTitle is the notification's sender name, like a real SMS
+// from the MPESA short code. It is separate from the "from ..." name in the body.
+const mpesaNotificationTitle = "MPESA"
 
 // Kenya has no DST, so a fixed zone avoids depending on tzdata being present.
 var nairobiZone = time.FixedZone("EAT", 3*60*60)
@@ -88,7 +93,7 @@ func (a *App) pushMpesaMessage(ctx context.Context, msg *MpesaMessage) (devices,
 		return 0, 0, 0
 	}
 	for _, tok := range tokens {
-		err := a.push.Send(ctx, tok, msg.Sender, msg.Body, msg.ID.String())
+		err := a.push.Send(ctx, tok, mpesaNotificationTitle, msg.Body, msg.ID.String())
 		switch {
 		case err == nil:
 			sent++
