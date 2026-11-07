@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MPESA</title>
+<style>
+  :root {
+    --header: #1f1d13;
+    --panel: #12110a;
+    --bubble: #26241a;
+    --footer: #1d1b11;
+    --text: #e9e7dc;
+    --muted: #b9b5a0;
+    --outline: #5b5738;
+    --divider: #8f875a;
+    --link-card: #002414;
+    --accent: #e6d68a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  body {
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+  }
+  /* Phone-sized column: fills the screen on phones, stays phone-width (centered) on anything bigger */
+  .app {
+    /* Pinned to the real viewport edges instead of vh/dvh, which Android WebView
+       can resolve to the wrong height (collapsing the message panel). */
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    background: var(--header);
+  }
+
+  /* ---------- Top app bar ---------- */
+  .bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px; background: var(--header); flex: none; }
+  .bar .back, .bar .more { width: 40px; height: 40px; display: grid; place-items: center; position: relative; }
+  .bar .back { cursor: pointer; }
+  .bar svg { fill: var(--text); }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: #f9c91b; display: grid; place-items: center; }
+  .avatar svg { fill: #1c1a0e; width: 24px; height: 24px; }
+  .title { flex: 1; font-size: 18px; letter-spacing: .2px; }
+  .more .dot { position: absolute; top: 6px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #f4a3a3; }
+
+  /* ---------- Conversation panel ---------- */
+  .panel {
+    flex: 1;
+    min-height: 0;
+    background: var(--panel);
+    border-radius: 28px 28px 0 0;
+    overflow-y: auto;
+    padding: 18px 12px 10px;
+    scroll-behavior: smooth;
+  }
+  .panel::-webkit-scrollbar { display: none; }
+
+  .stamp { text-align: center; font-size: 13px; color: var(--muted); margin: 14px 0 12px; }
+  .unread { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--divider); margin: 18px 0 6px; }
+  .unread::before, .unread::after { content: ""; flex: 1; height: 1.5px; background: var(--divider); }
+
+  .msg { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .col { width: 66%; display: flex; flex-direction: column; gap: 3px; }
+  .bubble { background: var(--bubble); border-radius: 22px; padding: 14px 16px; font-size: 16px; line-height: 1.55; overflow-wrap: anywhere; }
+  .bubble.has-link { border-radius: 22px 22px 8px 8px; }
+  .bubble a { color: var(--text); text-decoration: underline; }
+
+  /* ---------- Preview state 1: not loaded ---------- */
+  .preview-idle {
+    border: 1.5px solid var(--outline);
+    border-radius: 8px 8px 22px 22px;
+    padding: 20px 12px 24px;
+    text-align: center;
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text);
+    width: 100%;
+  }
+  .preview-idle svg { display: block; margin: 0 auto 10px; fill: var(--text); }
+  .preview-idle:active { background: rgba(255,255,255,.05); }
+  .preview-idle.spin svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Preview state 2: loaded (built from the message's link) ---------- */
+  .preview-card { display: none; border-radius: 8px 8px 22px 22px; overflow: hidden; background: var(--link-card); }
+  .preview-card .art { background: #fff; line-height: 0; }
+  .preview-card .art svg, .preview-card .art img { width: 100%; height: auto; display: block; }
+  .preview-card .meta { padding: 18px 16px 20px; }
+  .preview-card .meta b { display: block; font-weight: 400; font-size: 20px; margin-bottom: 14px; overflow-wrap: anywhere; }
+  .preview-card .meta span { font-size: 14px; color: var(--muted); }
+  .msg.loaded .preview-idle { display: none; }
+  .msg.loaded .preview-card { display: block; }
+
+  .fwd { width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid var(--outline); display: none; place-items: center; flex: none; }
+  .fwd svg { fill: var(--text); }
+  .msg.loaded .fwd { display: grid; }
+
+  .msg.new { animation: pop .28s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Footer: flush to the bottom edge, only the top corners rounded ---------- */
+  .footer-wrap { background: var(--panel); flex: none; }   /* shows behind the rounded corners */
+  .footer {
+    background: var(--footer);
+    border-radius: 28px 28px 0 0;
+    padding: 26px 30px calc(34px + env(safe-area-inset-bottom, 0px));
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .footer a { color: var(--accent); }
+  .footer .mock-note { display: block; font-size: 13px; line-height: 1.4; color: var(--accent); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="bar">
+    <div class="back"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></div>
+    <div class="avatar"><svg viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-3.3 0-9 1.7-9 5v2h18v-2c0-3.3-5.7-5-9-5z"/></svg></div>
+    <div class="title">MPESA</div>
+    <div class="more">
+      <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+      <span class="dot"></span>
+    </div>
+  </header>
+
+  <main class="panel" id="panel"></main>
+
+  <div class="footer-wrap">
+    <div class="footer"><span class="mock-note">Mock flow for learning STK push. This is not a real M-PESA app.</span>Sender can't accept replies. Contact them directly. <a href="#">Learn more</a></div>
+  </div>
+</div>
+
+<script>
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const panel = document.getElementById('panel');
+
+  const ICON_REFRESH = '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
+  // Material Symbols Outlined "forward" (FILL 0, wght 400, opsz 24)
+  const ICON_FWD = '<svg width="24" height="24" viewBox="0 -960 960 960"><path d="m644-288-43-43 193-193-193-193 43-43 236 236-236 236ZM81-200v-156q0-85 56.5-141.5T279-554h305L421-717l43-43 236 236-236 236-43-43 163-163H279q-60 0-99 39t-39 99v156H81Z"/></svg>';
+
+  // Static preview image: keep it in the SAME FOLDER as this page
+  const PREVIEW_IMAGE = 'mpesa-preview.jpg';
+  const SAF_LOGO = `<img src="${PREVIEW_IMAGE}" alt="">`;
+
+  // Chance (0 to 1) that a message's preview loads on its own.
+  // Otherwise the user has to tap "Tap to load preview". Set 0 = always tap, 1 = always auto.
+  const AUTO_LOAD_CHANCE = 0.4;
+
+  /* ------------------------------------------------------------------
+     Link previews are resolved FROM THE MESSAGE'S LINK, not hard-coded.
+     The link's host picks the preview. Add more hosts here, or replace
+     resolvePreview() with a real lookup (see the note inside).
+  ------------------------------------------------------------------ */
+  const KNOWN_PREVIEWS = {
+    'saf.cx': { title: 'Fintech App', image: SAF_LOGO }
+  };
+
+  async function resolvePreview(url, delay = 600) {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    // To fetch real metadata: call your own backend / an Android JS bridge here that follows
+    // the short link and returns { title, image } (og:title / og:image). A WebView page
+    // can't read other sites' HTML directly because of CORS.
+    // e.g. const meta = await fetch('/preview?url=' + encodeURIComponent(url)).then(r => r.json());
+    if (delay) await new Promise(r => setTimeout(r, delay));   // simulated network time
+    const known = KNOWN_PREVIEWS[host];
+    return { host, title: known ? known.title : host, image: known ? known.image : null };
+  }
+
+  /* ---------------- Rendering ---------------- */
+  function messageEl(m) {
+    const el = document.createElement('div');
+    el.className = 'msg' + (m.isNew ? ' new' : '');
+    if (m.link) el.dataset.url = m.link;
+    el.innerHTML = m.link ? `
+      <div class="col">
+        <div class="bubble has-link">${esc(m.text)} <a href="${esc(m.link)}">${esc(m.link)}</a></div>
+        <button class="preview-idle" type="button">${ICON_REFRESH}Tap to load preview</button>
+        <div class="preview-card"></div>
+      </div>
+      <div class="fwd">${ICON_FWD}</div>` : `
+      <div class="col"><div class="bubble">${esc(m.text)}</div></div>`;
+    return el;
+  }
+
+  function mountPreview(el, data) {
+    el.querySelector('.preview-card').innerHTML =
+      (data.image ? `<div class="art">${data.image}</div>` : '') +
+      `<div class="meta"><b>${esc(data.title)}</b><span>${esc(data.host)}</span></div>`;
+    el.classList.add('loaded');
+  }
+
+  async function loadPreview(el, auto = false) {
+    const btn = el.querySelector('.preview-idle');
+    if (btn && !auto) btn.classList.add('spin');
+    try { mountPreview(el, await resolvePreview(el.dataset.url, auto ? 0 : 600)); }
+    catch (e) { if (btn) btn.classList.remove('spin'); }
+  }
+
+  function append(m) {
+    if (m.unreadDivider) panel.insertAdjacentHTML('beforeend', '<div class="unread">Unread</div>');
+    if (m.time) panel.insertAdjacentHTML('beforeend', `<div class="stamp">${esc(m.time)}</div>`);
+    const el = messageEl(m);
+    panel.appendChild(el);
+    if (m.link) {
+      // explicit loaded:true/false wins, otherwise roll the dice
+      const auto = m.loaded === undefined ? Math.random() < AUTO_LOAD_CHANCE : m.loaded;
+      if (auto) loadPreview(el, true);
+    }
+    return el;
+  }
+
+  // Tap "Tap to load preview" -> state 2
+  panel.addEventListener('click', e => {
+    const btn = e.target.closest('.preview-idle');
+    if (btn) loadPreview(btn.closest('.msg'));
+  });
+
+  /* ---------------- Live data: influencer withdrawals -> M-PESA messages ----------------
+     Every withdrawal that reaches status "sent" becomes one "You have received ..." message
+     from PALPLUS FUTURE. Same token + endpoints as influencer.html.
+  ------------------------------------------------------------------ */
+  const API_URL = window.location.origin + '/api';
+  const SENDER_NAME = 'PALPLUS FUTURE';
+  const POLL_MS = 4000;
+  // TODO: point at the real messages/STK-push endpoint once it exists (null = empty inbox, use addMessage() to test)
+  const SYNC_ENDPOINT = null;
+  const LS_KES = 'gwave_mpesa_kes';     // withdrawal id -> amount in cents of KES, frozen when first shown
+  const LS_SEEN = 'gwave_mpesa_seen';   // ids of messages the user has already viewed
+
+  const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  const LOGIN_URL = '/admin/login.html';
+  // Accept ?token=... (e.g. from a native app / webview), store it, and strip it from the URL.
+  (function adoptUrlToken() {
+    const t = new URLSearchParams(window.location.search).get('token');
+    if (t) {
+      // influencer.html reads gwave_admin_token, login.html writes dotpesa_admin_token: keep both in sync
+      sessionStorage.setItem('gwave_admin_token', t);
+      sessionStorage.setItem('dotpesa_admin_token', t);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  })();
+  const token = () => sessionStorage.getItem('dotpesa_admin_token') || sessionStorage.getItem('gwave_admin_token') || '';
+
+  function kickToLogin() {
+    sessionStorage.removeItem('gwave_admin_token');
+    sessionStorage.removeItem('dotpesa_admin_token');
+    window.location.href = LOGIN_URL;
+  }
+
+  async function api(endpoint) {
+    const res = await fetch(API_URL + endpoint, { headers: { Authorization: 'Bearer ' + token() } });
+    if (res.status === 401 || res.status === 403) { kickToLogin(); throw new Error('auth'); }
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Request failed');
+    return json;
+  }
+
+  /* ---------- Deterministic bits so a message looks identical on every reload ---------- */
+  function hash32(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function rng(seed) {                       // mulberry32
+    let a = seed;
+    return () => {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const pick = (r, chars, n) => Array.from({ length: n }, () => chars[Math.floor(r() * chars.length)]).join('');
+
+  // Nairobi wall-clock parts
+  function nairobi(date) {
+    const o = {};
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Africa/Nairobi', day: 'numeric', month: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    }).formatToParts(date).forEach(p => { o[p.type] = p.value; });
+    return {
+      d: +o.day, m: +o.month, y: +o.year,
+      time: `${o.hour}:${o.minute} ${String(o.dayPeriod).toUpperCase()}`
+    };
+  }
+
+  // Real M-PESA codes encode the date: U = year (2026), K = month (A..L), 7 = day (1-9, then A..)
+  function mpesaCode(id, n) {
+    const yearCh = String.fromCharCode(65 + 20 + Math.max(0, Math.min(5, n.y - 2026)));
+    const monthCh = String.fromCharCode(64 + n.m);
+    const dayCh = n.d < 10 ? String(n.d) : String.fromCharCode(55 + n.d);
+    return yearCh + monthCh + dayCh + pick(rng(hash32('code' + id)), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 7);
+  }
+  const shortLink = id => 'https://saf.cx/' + pick(rng(hash32('link' + id)), 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', 5);
+  const autoLoads = id => rng(hash32('auto' + id))() < AUTO_LOAD_CHANCE;
+
+  const money = cents => (cents / 100).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* ---------- Build one message from a withdrawal ---------- */
+  function buildMessage(w, kesCents, balanceCents) {
+    const when = new Date(w.simulated_at || w.created_at);
+    const n = nairobi(when);
+    const text = w.message_text ||
+      `${mpesaCode(w.id, n)} Confirmed.You have received Ksh${money(kesCents)} from ${SENDER_NAME} ` +
+      `on ${n.d}/${n.m}/${String(n.y).slice(2)} at ${n.time}. ` +
+      `New M-PESA balance is Ksh${money(balanceCents)}. Transaction cost, Ksh0.00.`;
+    return { id: w.id, ts: when.getTime(), day: `${n.y}-${n.m}-${n.d}`, clock: n.time, d: n.d, m: n.m, text, link: shortLink(w.id), loaded: autoLoads(w.id) };
+  }
+
+  /* ---------- State ---------- */
+  let rate = 130;
+  let runningCents = 0;
+  let lastMsg = null;
+  const shown = new Set();
+  let seen = new Set(lsGet(LS_SEEN, []));
+  let firstRender = true;
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function stampFor(msg) {
+    const sameDayAsPrev = lastMsg && lastMsg.day === msg.day;
+    const smallGap = lastMsg && (msg.ts - lastMsg.ts) < 60 * 60 * 1000;
+    if (sameDayAsPrev && smallGap) return null;
+    const today = nairobi(new Date());
+    const isToday = msg.day === `${today.y}-${today.m}-${today.d}`;
+    return isToday ? msg.clock : `${msg.d} ${MONTHS[msg.m - 1]}, ${msg.clock}`;
+  }
+
+  async function sync() {
+    let withdrawals = [];
+    if (SYNC_ENDPOINT) {
+      try { withdrawals = (await api(SYNC_ENDPOINT)).data.withdrawals; }
+      catch (e) { return; }
+    }
+
+    const sent = withdrawals.filter(w => w.status === 'sent')
+      .sort((a, b) => new Date(a.simulated_at || a.created_at) - new Date(b.simulated_at || b.created_at));
+
+    // Balance was reset (withdrawals deleted): start the conversation over.
+    const liveIds = new Set(sent.map(w => w.id));
+    if ([...shown].some(id => !liveIds.has(id))) {
+      panel.innerHTML = ''; shown.clear(); runningCents = 0; lastMsg = null; firstRender = true;
+    }
+
+    const kes = lsGet(LS_KES, {});
+    let firstUnreadMarked = false;
+    let changed = false;
+
+    for (const w of sent) {
+      // Freeze the KES amount at the rate in force when the message was first produced,
+      // so old messages never change when the exchange rate moves.
+      if (kes[w.id] == null) {
+        kes[w.id] = Math.round(parseFloat(w.amount_usd) * rate * 100);
+        changed = true;
+      }
+      runningCents += shown.has(w.id) ? 0 : kes[w.id];
+      if (shown.has(w.id)) continue;
+
+      const msg = buildMessage(w, kes[w.id], runningCents);
+      const isUnread = !seen.has(w.id);
+      const el = append({
+        text: msg.text,
+        link: msg.link,
+        loaded: msg.loaded,
+        time: stampFor(msg),
+        unreadDivider: isUnread && !firstUnreadMarked && firstRender,
+        isNew: !firstRender
+      });
+      if (isUnread && firstRender) firstUnreadMarked = true;
+      lastMsg = msg;
+      shown.add(w.id);
+      seen.add(w.id);
+    }
+
+    // drop cache entries for withdrawals that no longer exist
+    for (const id of Object.keys(kes)) if (!liveIds.has(id)) { delete kes[id]; changed = true; }
+    if (changed) lsSet(LS_KES, kes);
+    lsSet(LS_SEEN, [...seen].filter(id => liveIds.has(id)));
+
+    if (!shown.size && !panel.querySelector('.stamp')) {
+      panel.innerHTML = '<div class="stamp">No messages yet</div>';
+    } else if (shown.size) {
+      const empty = panel.querySelector('.stamp:only-child');
+      if (empty && empty.textContent === 'No messages yet') empty.remove();
+    }
+    firstRender = false;
+    panel.scrollTop = panel.scrollHeight;
+  }
+
+  /* ---------- Back arrow -> influencer dashboard ---------- */
+  document.querySelector('.bar .back').addEventListener('click', () => {
+    window.location.href = '/admin/influencer.html';
+  });
+
+  /* ---------- Boot ---------- */
+  (async function init() {
+    if (!token()) { window.location.href = LOGIN_URL; return; }
+    // Debug-only: server decides (admin, or influencer with can_debug). 401 -> login, 403 -> back to dashboard.
+    try {
+      const gate = await fetch(API_URL + '/debug/access', { headers: { Authorization: 'Bearer ' + token() } });
+      if (gate.status === 401) { kickToLogin(); return; }
+      if (!gate.ok) { window.location.href = '/admin/influencer.html'; return; }
+    } catch { window.location.href = '/admin/influencer.html'; return; }
+    try {
+      const r = await fetch(API_URL + '/wallet/rate').then(r => r.json());
+      if (r && r.success && r.data && r.data.rate) rate = r.data.rate;
+    } catch {}
+    await sync();
+    setInterval(sync, POLL_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+  })();
+
+  /** Manual injection still works, e.g. for testing: addMessage({ text, link }) */
+  window.addMessage = function ({ text, link, time, loaded }) {
+    const t = time || new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    append({ text, link, time: t, loaded, isNew: true });
+    panel.scrollTop = panel.scrollHeight;
+  };
+</script>
+</body>
+</html>
