@@ -217,6 +217,10 @@ func (a *App) MarkInfluencerWithdrawal(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if status == "sent" {
+		// Mock M-PESA: tell the influencer's inbox/phone the money "arrived".
+		a.notifyWithdrawalSent(r.Context(), id)
+	}
 	writeSuccess(w, map[string]string{"id": id.String(), "status": status})
 }
 
