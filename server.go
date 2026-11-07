@@ -77,12 +77,14 @@ type Config struct {
 	DarajaCallbackURL    string
 
 	PalplussEnv string
-	// PalplussChannelIDs is the full set of channels available to switch
-	// between, parsed from the comma-separated PALPLUSS_CHANEL_ID env var
-	// (e.g. "id-one,id-two"). Which one is actually used for deposits is a
-	// runtime choice stored in Postgres (see db.go's app_settings /
-	// GetActivePalplussChannel) so admin can switch it from the dashboard
-	// without a redeploy — this slice is only the allowed set.
+	// PalplussChannelIDs is the pool of channel IDs available to choose
+	// from — PALPLUSS_CHANEL_ID is comma-separated (e.g. "id1,id2") to
+	// support that. Which one is actually used for new deposits is the
+	// *active* channel, which is admin-switchable at runtime from the
+	// dashboard (see palpluss.go's PalplussClient.SetActiveChannel and
+	// admin.go's SetPalplussChannel) but lives only in memory — it is not
+	// persisted, so it resets to the first entry here on every
+	// restart/redeploy. This list is just the set of valid choices.
 	PalplussChannelIDs     []string
 	PalplussAPIKey         string
 	PalplussBasicAuthToken string
@@ -118,7 +120,7 @@ func loadConfig() Config {
 		DarajaCallbackURL:    os.Getenv("DARAJA_CALLBACK_URL"),
 
 		PalplussEnv:            getenv("PALPLUSS_ENV", "sandbox"),
-		PalplussChannelIDs:     parseCommaList(os.Getenv("PALPLUSS_CHANEL_ID")),
+		PalplussChannelIDs:     splitAndTrim(os.Getenv("PALPLUSS_CHANEL_ID"), ","),
 		PalplussAPIKey:         os.Getenv("PALPLUSS_API_KEY"),
 		PalplussBasicAuthToken: os.Getenv("PALPLUSS_BASIC_AUTH_TOKEN"),
 		PalplussCallbackURL:    os.Getenv("PALPLUSS_CALLBACK_URL"),
@@ -134,14 +136,15 @@ func getenv(key, fallback string) string {
 	return fallback
 }
 
-// parseCommaList splits a comma-separated env value into a trimmed,
-// non-empty slice. Used for PALPLUSS_CHANEL_ID, which can hold one or more
-// channel ids (e.g. "id-one, id-two") — see Config.PalplussChannelIDs.
-func parseCommaList(raw string) []string {
-	if raw == "" {
+// splitAndTrim splits a delimited env var into a clean list — trims
+// whitespace around each entry (so "id1, id2" and "id1,id2" behave the
+// same) and drops empty entries (so a trailing comma or an unset var
+// doesn't produce a bogus "" channel). Returns nil for an empty input.
+func splitAndTrim(s, sep string) []string {
+	if strings.TrimSpace(s) == "" {
 		return nil
 	}
-	parts := strings.Split(raw, ",")
+	parts := strings.Split(s, sep)
 	out := make([]string, 0, len(parts))
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
@@ -191,10 +194,6 @@ func main() {
 	}
 	defer rdb.Close()
 
-	if cfg.PaymentProvider == "palpluss" && len(cfg.PalplussChannelIDs) == 0 {
-		log.Fatalf("PAYMENT_PROVIDER=palpluss but PALPLUSS_CHANEL_ID has no channel ids configured")
-	}
-
 	jwks, err := newJWKS(cfg.SupabaseURL)
 	if err != nil {
 		log.Fatalf("failed to load Supabase JWKS: %v", err)
@@ -207,7 +206,7 @@ func main() {
 		cfg:        cfg,
 		db:         db,
 		rdb:        rdb,
-		payments:   NewPaymentProvider(cfg, db),
+		payments:   NewPaymentProvider(cfg),
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		game:       game,
 		hub:        hub,
@@ -251,7 +250,7 @@ func (a *App) newRouter() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://rushpesabet.com", "https://playpesabet.com", "https://boostpesabet.com", "https://lunapesa.onrender.com", "https://lunapesabet.com", "https://rocketkash.com", "https://pesaprofit.com", "https://zenipesa.com"}, // tighten to the real frontend origin before production
+		AllowedOrigins:   []string{"https://rushpesabet.com","https://playpesabet.com","https://boostpesabet.com"}, // tighten to the real frontend origin before production
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
@@ -304,6 +303,16 @@ func (a *App) newRouter() http.Handler {
 			})
 		})
 
+		// Debug-only gate for static debug pages (e.g. admin/mpesa-messages.html).
+		// Admins always pass, influencers only with profiles.can_debug = true.
+		r.Route("/debug", func(r chi.Router) {
+			r.Use(a.AuthMiddleware)
+			r.Use(a.RequireDebugAccess)
+			r.Get("/access", func(w http.ResponseWriter, r *http.Request) {
+				writeSuccess(w, map[string]any{"debug": true})
+			})
+		})
+
 		r.Route("/wallet", func(r chi.Router) {
 			r.Post("/daraja/callback", a.DarajaCallback)     // unauthenticated Safaricom webhook
 			r.Post("/palpluss/callback", a.PalplussCallback) // unauthenticated PalPluss webhook
@@ -338,8 +347,8 @@ func (a *App) newRouter() http.Handler {
 			r.Get("/transactions", a.ListTransactions)
 			r.Get("/influencer-withdrawals", a.ListInfluencerWithdrawals)
 			r.Post("/influencer-withdrawals/{id}/{action}", a.MarkInfluencerWithdrawal)
-			r.Get("/palpluss/channels", a.ListPalplussChannels)
-			r.Post("/palpluss/active-channel", a.SetActivePalplussChannel)
+			r.Get("/payment/palpluss-channels", a.GetPalplussChannels)
+			r.Patch("/payment/palpluss-channel", a.SetPalplussChannel)
 		})
 	})
 
