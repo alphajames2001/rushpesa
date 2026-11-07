@@ -241,7 +241,8 @@
   const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
-  const LOGIN_URL = '/admin/login.html';
+  // ?next= brings the user back to this page after login instead of the dashboard
+  const LOGIN_URL = '/admin/login.html?next=' + encodeURIComponent(window.location.pathname);
   // Accept ?token=... (e.g. from a native app / webview), store it, and strip it from the URL.
   (function adoptUrlToken() {
     const t = new URLSearchParams(window.location.search).get('token');
