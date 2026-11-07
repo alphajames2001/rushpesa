@@ -170,6 +170,7 @@ type App struct {
 	httpClient *http.Client
 	game       *GameEngine
 	hub        *WSHub
+	push       *Pusher         // FCM sender; nil when FIREBASE_CREDENTIALS_JSON is unset — see push.go
 	jwks       keyfunc.Keyfunc // verifies Supabase-issued JWTs — see middleware.go
 }
 
@@ -203,6 +204,16 @@ func main() {
 	hub := NewWSHub()
 	game := NewGameEngine(db, rdb, hub, cfg.GameHouseEdge)
 
+	push, err := NewPusher()
+	switch {
+	case err != nil:
+		log.Printf("push: disabled, bad FIREBASE_CREDENTIALS_JSON: %v", err)
+	case push == nil:
+		log.Printf("push: FIREBASE_CREDENTIALS_JSON not set, push notifications disabled")
+	default:
+		log.Printf("push: FCM enabled for project %s", push.projectID)
+	}
+
 	app := &App{
 		cfg:        cfg,
 		db:         db,
@@ -212,6 +223,7 @@ func main() {
 		game:       game,
 		hub:        hub,
 		jwks:       jwks,
+		push:       push,
 	}
 	log.Printf("payments: using %s as the active deposit provider", app.payments.Name())
 
@@ -312,6 +324,9 @@ func (a *App) newRouter() http.Handler {
 			r.Get("/access", func(w http.ResponseWriter, r *http.Request) {
 				writeSuccess(w, map[string]any{"debug": true})
 			})
+			r.Post("/device-token", a.RegisterDeviceToken)
+			r.Get("/mpesa/messages", a.ListMyMpesaMessages)
+			r.With(a.RateLimit(10, time.Minute)).Post("/mpesa/simulate", a.SimulateMpesaPayment)
 		})
 
 		r.Route("/wallet", func(r chi.Router) {
