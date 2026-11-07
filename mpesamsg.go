@@ -105,9 +105,11 @@ func (a *App) pushMpesaMessage(ctx context.Context, msg *MpesaMessage) (devices,
 	return len(tokens), sent, failed
 }
 
-// notifyWithdrawalSent is the real trigger: called when an admin marks an
-// influencer withdrawal as sent. Errors are logged, never returned, because
-// the status change itself already succeeded.
+// notifyWithdrawalSent creates the mock "received" message for a withdrawal and
+// pushes it. It is called when the influencer withdraws (influencer.go) and
+// again when an admin marks the withdrawal sent (admin.go); the unique
+// withdrawal_id means only the first call creates anything. Errors are
+// logged, never returned, because the withdrawal itself already succeeded.
 func (a *App) notifyWithdrawalSent(ctx context.Context, withdrawalID uuid.UUID) {
 	userID, amount, err := a.db.GetInfluencerWithdrawal(ctx, withdrawalID)
 	if err != nil {
