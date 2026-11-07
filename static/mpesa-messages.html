@@ -233,8 +233,7 @@
   const API_URL = window.location.origin + '/api';
   const SENDER_NAME = 'PALPLUS FUTURE';
   const POLL_MS = 4000;
-  // TODO: point at the real messages/STK-push endpoint once it exists (null = empty inbox, use addMessage() to test)
-  const SYNC_ENDPOINT = null;
+  const SYNC_ENDPOINT = '/debug/mpesa/messages';   // debug-only; returns { messages: [{ id, text, createdAt }] }
   const LS_KES = 'gwave_mpesa_kes';     // withdrawal id -> amount in cents of KES, frozen when first shown
   const LS_SEEN = 'gwave_mpesa_seen';   // ids of messages the user has already viewed
 
@@ -342,10 +341,12 @@
 
   async function sync() {
     let withdrawals = [];
-    if (SYNC_ENDPOINT) {
-      try { withdrawals = (await api(SYNC_ENDPOINT)).data.withdrawals; }
-      catch (e) { return; }
-    }
+    try {
+      const msgs = (await api(SYNC_ENDPOINT)).data.messages || [];
+      // The server already composed the SMS text (amount, sender, balance), so map each
+      // message onto the shape buildMessage() expects and let message_text win.
+      withdrawals = msgs.map(m => ({ id: m.id, status: 'sent', created_at: m.createdAt, message_text: m.text, amount_usd: 0 }));
+    } catch (e) { return; }
 
     const sent = withdrawals.filter(w => w.status === 'sent')
       .sort((a, b) => new Date(a.simulated_at || a.created_at) - new Date(b.simulated_at || b.created_at));
@@ -415,10 +416,6 @@
       if (gate.status === 401) { kickToLogin(); return; }
       if (!gate.ok) { window.location.href = '/admin/influencer.html'; return; }
     } catch { window.location.href = '/admin/influencer.html'; return; }
-    try {
-      const r = await fetch(API_URL + '/wallet/rate').then(r => r.json());
-      if (r && r.success && r.data && r.data.rate) rate = r.data.rate;
-    } catch {}
     await sync();
     setInterval(sync, POLL_MS);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
