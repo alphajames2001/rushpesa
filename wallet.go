@@ -29,7 +29,7 @@ import (
 // while the manual payout step happens outside this codebase.
 
 const (
-	minDepositKES    = 300.0
+	minDepositKES    = 200.0
 	maxWithdrawalKES = 100000.0
 )
 
